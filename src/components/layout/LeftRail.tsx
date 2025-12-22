@@ -172,7 +172,7 @@ export function LeftRail({
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary flex-shrink-0"
+                          className="h-6 w-6 text-muted-foreground hover:text-primary flex-shrink-0"
                           onClick={(e) => {
                             e.stopPropagation();
                             onOpenGroupChat('segment', program.segment, program.name);

@@ -154,7 +154,7 @@ export function CustomerGroupManager({
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary"
+                      className="h-6 w-6 text-muted-foreground hover:text-primary"
                       onClick={(e) => {
                         e.stopPropagation();
                         onOpenGroupChat(group.id, group.name);
