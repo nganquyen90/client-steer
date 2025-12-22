@@ -19,7 +19,7 @@ import { Activity, Task, CustomerGroup, ContentTemplate } from '@/types';
 import { Helmet } from 'react-helmet-async';
 
 const Index = () => {
-  const [activeModule, setActiveModule] = useState('activity');
+  const [activeModule, setActiveModule] = useState('clients');
   const [activities, setActivities] = useState<Activity[]>(mockActivities);
   const [tasks, setTasks] = useState<Task[]>(mockTasks);
   const [customerGroups, setCustomerGroups] = useState<CustomerGroup[]>(mockCustomerGroups);
