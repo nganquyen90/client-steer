@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, Phone, Mail, Calendar, MapPin, MoreHorizontal } from 'lucide-react';
+import { ArrowLeft, Phone, Mail, Calendar, MapPin, MoreHorizontal, MessageCircle } from 'lucide-react';
 import { Customer, Interaction } from '@/types';
 import { cn } from '@/lib/utils';
 import { format, formatDistanceToNow } from 'date-fns';
@@ -84,6 +84,10 @@ export function Customer360({ customer, interactions, onBack }: Customer360Props
             <Button variant="outline" size="sm">
               <Phone className="mr-2 h-4 w-4" />
               Gọi điện
+            </Button>
+            <Button variant="outline" size="sm">
+              <MessageCircle className="mr-2 h-4 w-4" />
+              Chat
             </Button>
             <Button variant="outline" size="sm">
               <Mail className="mr-2 h-4 w-4" />
