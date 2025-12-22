@@ -115,7 +115,16 @@ const Index = () => {
           />
         );
       case 'compass':
-        return <CompassModule customerPrograms={mockCustomerPrograms} />;
+        return (
+          <CompassModule 
+            customerPrograms={mockCustomerPrograms}
+            customerGroups={customerGroups}
+            onAddGroup={handleAddGroup}
+            onEditGroup={handleEditGroup}
+            onDeleteGroup={handleDeleteGroup}
+            onImportCustomers={handleImportCustomers}
+          />
+        );
       case 'tasks':
         return (
           <MainStage>

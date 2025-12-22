@@ -1,16 +1,22 @@
 import { useState } from 'react';
-import { CustomerProgram, Journey } from '@/types';
+import { CustomerProgram, Journey, CustomerGroup } from '@/types';
 import { LeftRail } from '@/components/layout/LeftRail';
 import { MainStage } from '@/components/layout/MainStage';
 import { JourneyBuilder } from './JourneyBuilder';
+import { JourneyCreator } from './JourneyCreator';
 import { Button } from '@/components/ui/button';
-import { Plus, Play, Pause, MoreHorizontal, Compass } from 'lucide-react';
+import { Plus, Compass, MoreHorizontal } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
 interface CompassModuleProps {
   customerPrograms: CustomerProgram[];
+  customerGroups?: CustomerGroup[];
+  onAddGroup?: (group: Omit<CustomerGroup, 'id' | 'createdAt' | 'customerCount'>) => void;
+  onEditGroup?: (id: string, group: Partial<CustomerGroup>) => void;
+  onDeleteGroup?: (id: string) => void;
+  onImportCustomers?: (groupId: string, customers: any[]) => void;
 }
 
 const mockJourneys: Journey[] = [
@@ -50,15 +56,206 @@ const mockJourneys: Journey[] = [
   },
 ];
 
-export function CompassModule({ customerPrograms }: CompassModuleProps) {
+type ViewMode = 'list' | 'builder' | 'creator';
+
+export function CompassModule({ 
+  customerPrograms,
+  customerGroups = [],
+  onAddGroup,
+  onEditGroup,
+  onDeleteGroup,
+  onImportCustomers,
+}: CompassModuleProps) {
   const [selectedProgramId, setSelectedProgramId] = useState<string | null>(customerPrograms[0]?.id || null);
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [selectedJourneyId, setSelectedJourneyId] = useState<string | null>(null);
-  const [journeys] = useState<Journey[]>(mockJourneys);
+  const [journeys, setJourneys] = useState<Journey[]>(mockJourneys);
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
 
   const selectedJourney = journeys.find((j) => j.id === selectedJourneyId);
-  const programJourneys = selectedProgramId
+  
+  // Filter journeys based on selected program or group
+  const filteredJourneys = selectedGroupId
+    ? journeys.filter((j) => j.customerProgramId === selectedGroupId)
+    : selectedProgramId
     ? journeys.filter((j) => j.customerProgramId === selectedProgramId)
     : journeys;
+
+  const handleProgramSelect = (programId: string) => {
+    setSelectedProgramId(programId);
+    setSelectedGroupId(null);
+    setSelectedJourneyId(null);
+    setViewMode('list');
+  };
+
+  const handleGroupSelect = (groupId: string) => {
+    setSelectedGroupId(groupId);
+    setSelectedProgramId(null);
+    setSelectedJourneyId(null);
+    setViewMode('list');
+  };
+
+  const handleCreateJourney = (journeyData: { name: string; targetType: 'program' | 'group'; targetId: string }) => {
+    const newJourney: Journey = {
+      id: `j-${Date.now()}`,
+      name: journeyData.name,
+      customerProgramId: journeyData.targetId,
+      status: 'draft',
+      createdAt: new Date(),
+      nodes: [
+        { id: 'n-start', type: 'start', position: { x: 100, y: 200 }, data: { label: 'Bắt đầu' } },
+        { id: 'n-end', type: 'end', position: { x: 300, y: 200 }, data: { label: 'Kết thúc' } },
+      ],
+      edges: [
+        { id: 'e-1', source: 'n-start', target: 'n-end' },
+      ],
+    };
+    setJourneys((prev) => [...prev, newJourney]);
+    setSelectedJourneyId(newJourney.id);
+    setViewMode('builder');
+  };
+
+  const renderContent = () => {
+    if (viewMode === 'builder' && selectedJourney) {
+      return (
+        <JourneyBuilder
+          journey={selectedJourney}
+          onBack={() => {
+            setSelectedJourneyId(null);
+            setViewMode('list');
+          }}
+        />
+      );
+    }
+
+    if (viewMode === 'creator') {
+      return (
+        <JourneyCreator
+          customerPrograms={customerPrograms}
+          customerGroups={customerGroups}
+          selectedProgramId={selectedProgramId}
+          selectedGroupId={selectedGroupId}
+          onBack={() => setViewMode('list')}
+          onCreate={handleCreateJourney}
+        />
+      );
+    }
+
+    // List view
+    return (
+      <div className="flex h-full flex-col">
+        {/* Header */}
+        <div className="flex h-14 items-center justify-between border-b border-border px-6">
+          <div className="flex items-center gap-3">
+            <Compass className="h-5 w-5 text-primary" />
+            <h1 className="text-lg font-semibold">Hành trình khách hàng</h1>
+          </div>
+          <Button size="sm" onClick={() => setViewMode('creator')}>
+            <Plus className="mr-2 h-4 w-4" />
+            Tạo hành trình
+          </Button>
+        </div>
+
+        {/* Journey list */}
+        <div className="flex-1 overflow-y-auto scrollbar-thin p-6">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {filteredJourneys.map((journey, index) => {
+              const program = customerPrograms.find((p) => p.id === journey.customerProgramId);
+              const group = customerGroups.find((g) => g.id === journey.customerProgramId);
+              const targetName = program?.name || group?.name;
+              
+              return (
+                <motion.div
+                  key={journey.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                >
+                  <button
+                    onClick={() => {
+                      setSelectedJourneyId(journey.id);
+                      setViewMode('builder');
+                    }}
+                    className="group w-full rounded-lg border border-border bg-card p-5 text-left transition-all hover:border-primary/50 hover:shadow-md"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={cn(
+                          'flex h-10 w-10 items-center justify-center rounded-lg',
+                          journey.status === 'active' ? 'bg-success/10 text-success' :
+                          journey.status === 'paused' ? 'bg-warning/10 text-warning' :
+                          'bg-muted text-muted-foreground'
+                        )}>
+                          <Compass className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <h3 className="font-medium group-hover:text-primary transition-colors">
+                            {journey.name}
+                          </h3>
+                          {targetName && (
+                            <p className="text-xs text-muted-foreground">{targetName}</p>
+                          )}
+                        </div>
+                      </div>
+                      <MoreHorizontal className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </div>
+
+                    <div className="mt-4 flex items-center justify-between">
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          journey.status === 'active' && 'bg-success/10 text-success border-success/20',
+                          journey.status === 'paused' && 'bg-warning/10 text-warning border-warning/20',
+                          journey.status === 'draft' && 'bg-muted text-muted-foreground'
+                        )}
+                      >
+                        {journey.status === 'active' ? 'Đang chạy' :
+                         journey.status === 'paused' ? 'Tạm dừng' : 'Nháp'}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">
+                        {journey.nodes.length} bước
+                      </span>
+                    </div>
+
+                    {/* Mini preview */}
+                    <div className="mt-4 flex items-center gap-2">
+                      {journey.nodes.slice(0, 5).map((node) => (
+                        <div
+                          key={node.id}
+                          className={cn(
+                            'h-2 w-2 rounded-full',
+                            node.type === 'start' && 'bg-success',
+                            node.type === 'touchpoint' && 'bg-primary',
+                            node.type === 'wait' && 'bg-warning',
+                            node.type === 'decision' && 'bg-accent',
+                            node.type === 'end' && 'bg-muted-foreground'
+                          )}
+                        />
+                      ))}
+                      {journey.nodes.length > 5 && (
+                        <span className="text-xs text-muted-foreground">+{journey.nodes.length - 5}</span>
+                      )}
+                    </div>
+                  </button>
+                </motion.div>
+              );
+            })}
+
+            {/* Empty state / Add new */}
+            <button
+              onClick={() => setViewMode('creator')}
+              className="flex h-48 items-center justify-center rounded-lg border-2 border-dashed border-border bg-muted/30 text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary"
+            >
+              <div className="flex flex-col items-center gap-2">
+                <Plus className="h-8 w-8" />
+                <span className="text-sm font-medium">Tạo hành trình mới</span>
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="flex h-full">
@@ -66,123 +263,17 @@ export function CompassModule({ customerPrograms }: CompassModuleProps) {
         title="La bàn hành trình"
         customerPrograms={customerPrograms}
         selectedProgramId={selectedProgramId}
-        onProgramSelect={(id) => {
-          setSelectedProgramId(id);
-          setSelectedJourneyId(null);
-        }}
+        onProgramSelect={handleProgramSelect}
+        customerGroups={customerGroups}
+        onAddGroup={onAddGroup}
+        onEditGroup={onEditGroup}
+        onDeleteGroup={onDeleteGroup}
+        onImportCustomers={onImportCustomers}
+        selectedGroupId={selectedGroupId}
+        onSelectGroup={handleGroupSelect}
       />
       <MainStage>
-        {selectedJourney ? (
-          <JourneyBuilder
-            journey={selectedJourney}
-            onBack={() => setSelectedJourneyId(null)}
-          />
-        ) : (
-          <div className="flex h-full flex-col">
-            {/* Header */}
-            <div className="flex h-14 items-center justify-between border-b border-border px-6">
-              <div className="flex items-center gap-3">
-                <Compass className="h-5 w-5 text-primary" />
-                <h1 className="text-lg font-semibold">Hành trình khách hàng</h1>
-              </div>
-              <Button size="sm">
-                <Plus className="mr-2 h-4 w-4" />
-                Tạo hành trình
-              </Button>
-            </div>
-
-            {/* Journey list */}
-            <div className="flex-1 overflow-y-auto scrollbar-thin p-6">
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {programJourneys.map((journey, index) => {
-                  const program = customerPrograms.find((p) => p.id === journey.customerProgramId);
-                  return (
-                    <motion.div
-                      key={journey.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                    >
-                      <button
-                        onClick={() => setSelectedJourneyId(journey.id)}
-                        className="group w-full rounded-lg border border-border bg-card p-5 text-left transition-all hover:border-primary/50 hover:shadow-md"
-                      >
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className={cn(
-                              'flex h-10 w-10 items-center justify-center rounded-lg',
-                              journey.status === 'active' ? 'bg-success/10 text-success' :
-                              journey.status === 'paused' ? 'bg-warning/10 text-warning' :
-                              'bg-muted text-muted-foreground'
-                            )}>
-                              <Compass className="h-5 w-5" />
-                            </div>
-                            <div>
-                              <h3 className="font-medium group-hover:text-primary transition-colors">
-                                {journey.name}
-                              </h3>
-                              {program && (
-                                <p className="text-xs text-muted-foreground">{program.name}</p>
-                              )}
-                            </div>
-                          </div>
-                          <MoreHorizontal className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                        </div>
-
-                        <div className="mt-4 flex items-center justify-between">
-                          <Badge
-                            variant="outline"
-                            className={cn(
-                              journey.status === 'active' && 'bg-success/10 text-success border-success/20',
-                              journey.status === 'paused' && 'bg-warning/10 text-warning border-warning/20',
-                              journey.status === 'draft' && 'bg-muted text-muted-foreground'
-                            )}
-                          >
-                            {journey.status === 'active' ? 'Đang chạy' :
-                             journey.status === 'paused' ? 'Tạm dừng' : 'Nháp'}
-                          </Badge>
-                          <span className="text-xs text-muted-foreground">
-                            {journey.nodes.length} bước
-                          </span>
-                        </div>
-
-                        {/* Mini preview */}
-                        <div className="mt-4 flex items-center gap-2">
-                          {journey.nodes.slice(0, 5).map((node, i) => (
-                            <div
-                              key={node.id}
-                              className={cn(
-                                'h-2 w-2 rounded-full',
-                                node.type === 'start' && 'bg-success',
-                                node.type === 'touchpoint' && 'bg-primary',
-                                node.type === 'wait' && 'bg-warning',
-                                node.type === 'decision' && 'bg-accent',
-                                node.type === 'end' && 'bg-muted-foreground'
-                              )}
-                            />
-                          ))}
-                          {journey.nodes.length > 5 && (
-                            <span className="text-xs text-muted-foreground">+{journey.nodes.length - 5}</span>
-                          )}
-                        </div>
-                      </button>
-                    </motion.div>
-                  );
-                })}
-
-                {/* Empty state / Add new */}
-                <button
-                  className="flex h-48 items-center justify-center rounded-lg border-2 border-dashed border-border bg-muted/30 text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary"
-                >
-                  <div className="flex flex-col items-center gap-2">
-                    <Plus className="h-8 w-8" />
-                    <span className="text-sm font-medium">Tạo hành trình mới</span>
-                  </div>
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        {renderContent()}
       </MainStage>
     </div>
   );
