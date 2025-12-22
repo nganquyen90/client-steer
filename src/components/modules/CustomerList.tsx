@@ -1,4 +1,4 @@
-import { Search, Filter, MoreHorizontal, Mail, Phone, MapPin } from 'lucide-react';
+import { Search, Filter, Mail, Phone, MapPin, MessageCircle } from 'lucide-react';
 import { Customer } from '@/types';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
@@ -9,12 +9,16 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useState } from 'react';
 import { maskSensitive } from '@/data/mockData';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface CustomerListProps {
   customers: Customer[];
   programName: string;
   programDescription?: string;
   onCustomerSelect: (customerId: string) => void;
+  onCallCustomer?: (customer: Customer) => void;
+  onEmailCustomer?: (customer: Customer) => void;
+  onChatCustomer?: (customer: Customer) => void;
 }
 
 const statusStyles = {
@@ -31,7 +35,15 @@ const statusLabels = {
   churned: 'Đã rời bỏ',
 };
 
-export function CustomerList({ customers, programName, programDescription, onCustomerSelect }: CustomerListProps) {
+export function CustomerList({ 
+  customers, 
+  programName, 
+  programDescription, 
+  onCustomerSelect,
+  onCallCustomer,
+  onEmailCustomer,
+  onChatCustomer,
+}: CustomerListProps) {
   const [searchQuery, setSearchQuery] = useState('');
 
   const filteredCustomers = customers.filter(
@@ -98,7 +110,7 @@ export function CustomerList({ customers, programName, programDescription, onCus
                       <p className="text-xs text-muted-foreground">{customer.dId}</p>
                     </div>
                   </div>
-                  <MoreHorizontal className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                  
                 </div>
 
                 <div className="mt-4 space-y-2">
@@ -118,7 +130,67 @@ export function CustomerList({ customers, programName, programDescription, onCus
                   )}
                 </div>
 
-                <div className="mt-4 flex items-center justify-between">
+                {/* Quick CTA buttons */}
+                <div className="mt-4 flex items-center gap-1">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onCallCustomer?.(customer);
+                          }}
+                        >
+                          <Phone className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Gọi điện</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onEmailCustomer?.(customer);
+                          }}
+                        >
+                          <Mail className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Gửi email</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onChatCustomer?.(customer);
+                          }}
+                        >
+                          <MessageCircle className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Chat</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+
+                <div className="mt-2 flex items-center justify-between">
                   <Badge variant="outline" className={cn('text-xs', statusStyles[customer.status])}>
                     {statusLabels[customer.status]}
                   </Badge>

@@ -98,6 +98,9 @@ export function ClientsModule({
             programName={selectedGroup?.name || selectedProgram?.name || 'Tất cả khách hàng'}
             programDescription={selectedGroup?.description || selectedProgram?.description}
             onCustomerSelect={setSelectedCustomerId}
+            onCallCustomer={(customer) => window.open(`tel:${customer.phone}`, '_blank')}
+            onEmailCustomer={(customer) => window.open(`mailto:${customer.email}`, '_blank')}
+            onChatCustomer={handleOpenCustomerChat}
           />
         )}
       </MainStage>
