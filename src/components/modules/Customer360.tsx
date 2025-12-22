@@ -14,6 +14,7 @@ interface Customer360Props {
   customer: Customer;
   interactions: Interaction[];
   onBack: () => void;
+  onOpenChat?: () => void;
 }
 
 const segmentLabels = {
@@ -51,7 +52,7 @@ const interactionTypeLabels = {
   meeting: 'Cuộc họp',
 };
 
-export function Customer360({ customer, interactions, onBack }: Customer360Props) {
+export function Customer360({ customer, interactions, onBack, onOpenChat }: Customer360Props) {
   const [activeTab, setActiveTab] = useState('profile');
 
   return (
@@ -85,7 +86,7 @@ export function Customer360({ customer, interactions, onBack }: Customer360Props
               <Phone className="mr-2 h-4 w-4" />
               Gọi điện
             </Button>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={onOpenChat}>
               <MessageCircle className="mr-2 h-4 w-4" />
               Chat
             </Button>

@@ -64,6 +64,10 @@ export function ClientsModule({
     chatContainerRef.current?.openGroupChat(type, groupId, groupName);
   }, []);
 
+  const handleOpenCustomerChat = useCallback((customer: Customer) => {
+    chatContainerRef.current?.openIndividualChat(customer);
+  }, []);
+
   return (
     <div className="flex h-full">
       <LeftRail
@@ -86,6 +90,7 @@ export function ClientsModule({
             customer={selectedCustomer}
             interactions={customerInteractions}
             onBack={() => setSelectedCustomerId(null)}
+            onOpenChat={() => handleOpenCustomerChat(selectedCustomer)}
           />
         ) : (
           <CustomerList

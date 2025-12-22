@@ -15,6 +15,7 @@ interface ChatContainerProps {
 
 export interface ChatContainerRef {
   openGroupChat: (type: 'custom' | 'segment', groupId: string, groupName: string) => void;
+  openIndividualChat: (customer: Customer) => void;
 }
 
 // Mock initial chats
@@ -130,13 +131,17 @@ export const ChatContainer = forwardRef<ChatContainerRef, ChatContainerProps>(({
     setViewMode('chat');
   }, [chats, customers, customerGroups]);
 
-  // Expose openGroupChat method to parent
+  // Expose methods to parent
   useImperativeHandle(ref, () => ({
     openGroupChat: (type: 'custom' | 'segment', groupId: string, groupName: string) => {
       setIsOpen(true);
       handleCreateGroupChat(type, groupId, groupName);
+    },
+    openIndividualChat: (customer: Customer) => {
+      setIsOpen(true);
+      handleStartIndividualChat(customer);
     }
-  }), [handleCreateGroupChat]);
+  }), [handleCreateGroupChat, handleStartIndividualChat]);
 
   const handleSelectChat = useCallback((chatId: string) => {
     setSelectedChatId(chatId);
