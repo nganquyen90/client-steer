@@ -8,14 +8,14 @@ export interface Customer {
   name: string;
   phone: string;
   email: string;
+  address?: string;
   segment: CustomerSegment;
   status: 'new' | 'active' | 'inactive' | 'churned';
   lastInteraction: Date;
   createdAt: Date;
   avatar?: string;
-  company?: string;
-  position?: string;
   tags: string[];
+  groupId?: string;
 }
 
 export interface Activity {
@@ -38,6 +38,27 @@ export interface CustomerProgram {
   customerCount: number;
   rules: string[];
   createdAt: Date;
+  isCustom?: boolean;
+}
+
+export interface CustomerGroup {
+  id: string;
+  name: string;
+  description?: string;
+  customerCount: number;
+  createdAt: Date;
+}
+
+export interface ContentTemplate {
+  id: string;
+  type: 'email' | 'social' | 'sales_doc';
+  name: string;
+  description?: string;
+  content: string;
+  thumbnail?: string;
+  category: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface Campaign {

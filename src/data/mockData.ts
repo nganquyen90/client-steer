@@ -1,4 +1,16 @@
-import { Customer, Activity, CustomerProgram, Task, Interaction } from '@/types';
+import { Customer, Activity, CustomerProgram, Task, Interaction, CustomerGroup, ContentTemplate } from '@/types';
+
+// Helper function to mask sensitive data
+export const maskSensitive = (value: string, visibleChars: number = 5): string => {
+  if (value.length <= visibleChars) return '*'.repeat(value.length);
+  return '*'.repeat(visibleChars) + value.slice(visibleChars);
+};
+
+export const mockCustomerGroups: CustomerGroup[] = [
+  { id: 'g-1', name: 'Leads tháng 12', description: 'Khách hàng tiềm năng tháng 12/2024', customerCount: 45, createdAt: new Date('2024-12-01') },
+  { id: 'g-2', name: 'Hot leads Q4', description: 'Khách hàng nóng Q4', customerCount: 12, createdAt: new Date('2024-10-15') },
+  { id: 'g-3', name: 'Referral', description: 'Khách hàng giới thiệu', customerCount: 28, createdAt: new Date('2024-09-01') },
+];
 
 export const mockCustomers: Customer[] = [
   {
@@ -7,13 +19,13 @@ export const mockCustomers: Customer[] = [
     name: 'Nguyễn Văn An',
     phone: '0901234567',
     email: 'nguyenvanan@gmail.com',
+    address: '123 Nguyễn Huệ, Q.1, TP.HCM',
     segment: 'need',
     status: 'new',
     lastInteraction: new Date('2024-12-15'),
     createdAt: new Date('2024-12-10'),
-    company: 'Công ty ABC',
-    position: 'Giám đốc',
     tags: ['VIP', 'Mới'],
+    groupId: 'g-1',
   },
   {
     id: '2',
@@ -21,13 +33,13 @@ export const mockCustomers: Customer[] = [
     name: 'Trần Thị Bình',
     phone: '0912345678',
     email: 'tranthbinh@gmail.com',
+    address: '456 Lê Lợi, Q.3, TP.HCM',
     segment: 'risk',
     status: 'inactive',
     lastInteraction: new Date('2024-11-20'),
     createdAt: new Date('2024-08-15'),
-    company: 'Công ty XYZ',
-    position: 'Kế toán trưởng',
     tags: ['Cần chăm sóc'],
+    groupId: 'g-2',
   },
   {
     id: '3',
@@ -35,13 +47,13 @@ export const mockCustomers: Customer[] = [
     name: 'Lê Hoàng Cường',
     phone: '0923456789',
     email: 'lehoangcuong@gmail.com',
+    address: '789 Hai Bà Trưng, Q.1, TP.HCM',
     segment: 'experience',
     status: 'active',
     lastInteraction: new Date('2024-12-18'),
     createdAt: new Date('2024-03-20'),
-    company: 'Tập đoàn DEF',
-    position: 'Trưởng phòng',
     tags: ['Khách hàng thân thiết', 'Premium'],
+    groupId: 'g-3',
   },
   {
     id: '4',
@@ -49,13 +61,13 @@ export const mockCustomers: Customer[] = [
     name: 'Phạm Minh Đức',
     phone: '0934567890',
     email: 'phamminhduc@gmail.com',
+    address: '321 Điện Biên Phủ, Q.Bình Thạnh, TP.HCM',
     segment: 'need',
     status: 'new',
     lastInteraction: new Date('2024-12-17'),
     createdAt: new Date('2024-12-12'),
-    company: 'Startup GHI',
-    position: 'CEO',
     tags: ['Tiềm năng cao'],
+    groupId: 'g-1',
   },
   {
     id: '5',
@@ -63,12 +75,11 @@ export const mockCustomers: Customer[] = [
     name: 'Võ Thị Hoa',
     phone: '0945678901',
     email: 'vothihoa@gmail.com',
+    address: '654 Võ Văn Tần, Q.3, TP.HCM',
     segment: 'risk',
     status: 'churned',
     lastInteraction: new Date('2024-10-05'),
     createdAt: new Date('2024-01-10'),
-    company: 'Công ty JKL',
-    position: 'Nhân viên',
     tags: ['Đã rời bỏ'],
   },
   {
@@ -77,12 +88,11 @@ export const mockCustomers: Customer[] = [
     name: 'Đỗ Quang Hùng',
     phone: '0956789012',
     email: 'doquanghung@gmail.com',
+    address: '987 Nam Kỳ Khởi Nghĩa, Q.1, TP.HCM',
     segment: 'experience',
     status: 'active',
     lastInteraction: new Date('2024-12-19'),
     createdAt: new Date('2024-02-28'),
-    company: 'Công ty MNO',
-    position: 'Phó giám đốc',
     tags: ['VIP', 'Đối tác chiến lược'],
   },
 ];
@@ -322,3 +332,86 @@ export const taskTypeLabels: Record<string, string> = {
   follow_up: 'Theo dõi',
   other: 'Khác',
 };
+
+export const mockContentTemplates: ContentTemplate[] = [
+  {
+    id: 'ct-1',
+    type: 'email',
+    name: 'Email chào mừng khách hàng mới',
+    description: 'Template email gửi cho khách hàng mới đăng ký',
+    content: '<h1>Chào mừng bạn!</h1><p>Cảm ơn bạn đã tin tưởng sử dụng dịch vụ của chúng tôi...</p>',
+    category: 'Chào mừng',
+    createdAt: new Date('2024-11-01'),
+    updatedAt: new Date('2024-12-10'),
+  },
+  {
+    id: 'ct-2',
+    type: 'email',
+    name: 'Email nhắc nhở thanh toán',
+    description: 'Template nhắc nhở khách hàng thanh toán',
+    content: '<h1>Nhắc nhở thanh toán</h1><p>Hóa đơn của bạn sắp đến hạn...</p>',
+    category: 'Thanh toán',
+    createdAt: new Date('2024-10-15'),
+    updatedAt: new Date('2024-12-05'),
+  },
+  {
+    id: 'ct-3',
+    type: 'email',
+    name: 'Email khảo sát NPS',
+    description: 'Template khảo sát mức độ hài lòng',
+    content: '<h1>Khảo sát ý kiến</h1><p>Bạn có hài lòng với dịch vụ của chúng tôi không?</p>',
+    category: 'Khảo sát',
+    createdAt: new Date('2024-09-20'),
+    updatedAt: new Date('2024-11-28'),
+  },
+  {
+    id: 'ct-4',
+    type: 'social',
+    name: 'Banner Facebook khuyến mãi',
+    description: 'Banner quảng cáo Facebook cho các chương trình khuyến mãi',
+    content: 'https://placeholder.com/promo-banner.jpg',
+    category: 'Quảng cáo',
+    createdAt: new Date('2024-12-01'),
+    updatedAt: new Date('2024-12-15'),
+  },
+  {
+    id: 'ct-5',
+    type: 'social',
+    name: 'Post Instagram sản phẩm mới',
+    description: 'Template bài đăng giới thiệu sản phẩm mới',
+    content: '🎉 SẢN PHẨM MỚI! Khám phá ngay...',
+    category: 'Sản phẩm',
+    createdAt: new Date('2024-11-15'),
+    updatedAt: new Date('2024-12-10'),
+  },
+  {
+    id: 'ct-6',
+    type: 'sales_doc',
+    name: 'Brochure giới thiệu công ty',
+    description: 'Tài liệu giới thiệu dịch vụ và sản phẩm công ty',
+    content: 'brochure-intro.pdf',
+    category: 'Giới thiệu',
+    createdAt: new Date('2024-08-01'),
+    updatedAt: new Date('2024-10-20'),
+  },
+  {
+    id: 'ct-7',
+    type: 'sales_doc',
+    name: 'Bảng báo giá dịch vụ',
+    description: 'Bảng giá các gói dịch vụ cập nhật',
+    content: 'price-list-2024.pdf',
+    category: 'Báo giá',
+    createdAt: new Date('2024-06-15'),
+    updatedAt: new Date('2024-12-01'),
+  },
+  {
+    id: 'ct-8',
+    type: 'sales_doc',
+    name: 'Case study khách hàng',
+    description: 'Câu chuyện thành công của khách hàng tiêu biểu',
+    content: 'case-study-abc.pdf',
+    category: 'Case Study',
+    createdAt: new Date('2024-07-10'),
+    updatedAt: new Date('2024-11-05'),
+  },
+];

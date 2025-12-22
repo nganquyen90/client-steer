@@ -1,4 +1,4 @@
-import { Search, Filter, MoreHorizontal, Mail, Phone, User } from 'lucide-react';
+import { Search, Filter, MoreHorizontal, Mail, Phone, MapPin } from 'lucide-react';
 import { Customer } from '@/types';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useState } from 'react';
+import { maskSensitive } from '@/data/mockData';
 
 interface CustomerListProps {
   customers: Customer[];
@@ -15,12 +16,6 @@ interface CustomerListProps {
   programDescription?: string;
   onCustomerSelect: (customerId: string) => void;
 }
-
-const segmentStyles = {
-  need: 'bg-need/10 text-need border-need/20',
-  risk: 'bg-risk/10 text-risk border-risk/20',
-  experience: 'bg-experience/10 text-experience border-experience/20',
-};
 
 const statusStyles = {
   new: 'bg-info/10 text-info',
@@ -109,16 +104,16 @@ export function CustomerList({ customers, programName, programDescription, onCus
                 <div className="mt-4 space-y-2">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Phone className="h-3.5 w-3.5" />
-                    <span>{customer.phone}</span>
+                    <span>{maskSensitive(customer.phone)}</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Mail className="h-3.5 w-3.5" />
-                    <span className="truncate">{customer.email}</span>
+                    <span className="truncate">{maskSensitive(customer.email)}</span>
                   </div>
-                  {customer.company && (
+                  {customer.address && (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <User className="h-3.5 w-3.5" />
-                      <span className="truncate">{customer.company}</span>
+                      <MapPin className="h-3.5 w-3.5" />
+                      <span className="truncate">{customer.address}</span>
                     </div>
                   )}
                 </div>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, Phone, Mail, Building2, User, Calendar, MapPin, MoreHorizontal, Edit, Trash } from 'lucide-react';
+import { ArrowLeft, Phone, Mail, Calendar, MapPin, MoreHorizontal } from 'lucide-react';
 import { Customer, Interaction } from '@/types';
 import { cn } from '@/lib/utils';
 import { format, formatDistanceToNow } from 'date-fns';
@@ -8,6 +8,7 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { maskSensitive } from '@/data/mockData';
 
 interface Customer360Props {
   customer: Customer;
@@ -134,7 +135,7 @@ export function Customer360({ customer, interactions, onBack }: Customer360Props
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Số điện thoại</p>
-                      <p className="font-medium">{customer.phone}</p>
+                      <p className="font-medium">{maskSensitive(customer.phone)}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
@@ -143,28 +144,17 @@ export function Customer360({ customer, interactions, onBack }: Customer360Props
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Email</p>
-                      <p className="font-medium">{customer.email}</p>
+                      <p className="font-medium">{maskSensitive(customer.email)}</p>
                     </div>
                   </div>
-                  {customer.company && (
+                  {customer.address && (
                     <div className="flex items-center gap-3">
                       <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted">
-                        <Building2 className="h-4 w-4 text-muted-foreground" />
+                        <MapPin className="h-4 w-4 text-muted-foreground" />
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">Công ty</p>
-                        <p className="font-medium">{customer.company}</p>
-                      </div>
-                    </div>
-                  )}
-                  {customer.position && (
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted">
-                        <User className="h-4 w-4 text-muted-foreground" />
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Chức vụ</p>
-                        <p className="font-medium">{customer.position}</p>
+                        <p className="text-sm text-muted-foreground">Địa chỉ</p>
+                        <p className="font-medium">{customer.address}</p>
                       </div>
                     </div>
                   )}
