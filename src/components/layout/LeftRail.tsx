@@ -1,16 +1,25 @@
 import { useState } from 'react';
 import { Search, ChevronDown, ChevronRight, Plus, Filter, MoreHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { CustomerProgram, CustomerSegment } from '@/types';
+import { CustomerProgram, CustomerSegment, CustomerGroup } from '@/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { CustomerGroupManager } from '@/components/modules/CustomerGroupManager';
+import { Separator } from '@/components/ui/separator';
 
 interface LeftRailProps {
   title: string;
   customerPrograms: CustomerProgram[];
   selectedProgramId: string | null;
   onProgramSelect: (programId: string) => void;
+  customerGroups?: CustomerGroup[];
+  onAddGroup?: (group: Omit<CustomerGroup, 'id' | 'createdAt' | 'customerCount'>) => void;
+  onEditGroup?: (id: string, group: Partial<CustomerGroup>) => void;
+  onDeleteGroup?: (id: string) => void;
+  onImportCustomers?: (groupId: string, customers: any[]) => void;
+  selectedGroupId?: string | null;
+  onSelectGroup?: (groupId: string) => void;
 }
 
 const segmentGroups: { id: CustomerSegment; label: string; color: string }[] = [
@@ -19,7 +28,19 @@ const segmentGroups: { id: CustomerSegment; label: string; color: string }[] = [
   { id: 'experience', label: 'Experience', color: 'experience' },
 ];
 
-export function LeftRail({ title, customerPrograms, selectedProgramId, onProgramSelect }: LeftRailProps) {
+export function LeftRail({ 
+  title, 
+  customerPrograms, 
+  selectedProgramId, 
+  onProgramSelect,
+  customerGroups = [],
+  onAddGroup,
+  onEditGroup,
+  onDeleteGroup,
+  onImportCustomers,
+  selectedGroupId,
+  onSelectGroup,
+}: LeftRailProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedGroups, setExpandedGroups] = useState<CustomerSegment[]>(['need', 'risk', 'experience']);
 
@@ -68,6 +89,29 @@ export function LeftRail({ title, customerPrograms, selectedProgramId, onProgram
 
       {/* Program list */}
       <div className="flex-1 overflow-y-auto scrollbar-thin px-2">
+        {/* Custom Groups Section */}
+        {onAddGroup && onEditGroup && onDeleteGroup && onImportCustomers && onSelectGroup && (
+          <>
+            <CustomerGroupManager
+              groups={customerGroups}
+              onAddGroup={onAddGroup}
+              onEditGroup={onEditGroup}
+              onDeleteGroup={onDeleteGroup}
+              onImportCustomers={onImportCustomers}
+              onSelectGroup={onSelectGroup}
+              selectedGroupId={selectedGroupId || null}
+            />
+            <Separator className="my-3" />
+          </>
+        )}
+
+        {/* Segment Groups */}
+        <div className="mb-2">
+          <h3 className="text-xs font-semibold text-muted-foreground px-2 mb-2 uppercase tracking-wider">
+            Phân khúc hệ thống
+          </h3>
+        </div>
+        
         {groupedPrograms.map((group) => (
           <div key={group.id} className="mb-2">
             {/* Group header */}

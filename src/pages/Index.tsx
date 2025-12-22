@@ -5,20 +5,25 @@ import { ActivityFeed } from '@/components/modules/ActivityFeed';
 import { ClientsModule } from '@/components/modules/ClientsModule';
 import { CompassModule } from '@/components/modules/CompassModule';
 import { TasksModule } from '@/components/modules/TasksModule';
+import { ContentModule } from '@/components/modules/ContentModule';
 import { 
   mockCustomers, 
   mockActivities, 
   mockCustomerPrograms, 
   mockTasks,
-  mockInteractions 
+  mockInteractions,
+  mockCustomerGroups,
+  mockContentTemplates,
 } from '@/data/mockData';
-import { Activity, Task } from '@/types';
+import { Activity, Task, CustomerGroup, ContentTemplate } from '@/types';
 import { Helmet } from 'react-helmet-async';
 
 const Index = () => {
   const [activeModule, setActiveModule] = useState('activity');
   const [activities, setActivities] = useState<Activity[]>(mockActivities);
   const [tasks, setTasks] = useState<Task[]>(mockTasks);
+  const [customerGroups, setCustomerGroups] = useState<CustomerGroup[]>(mockCustomerGroups);
+  const [contentTemplates, setContentTemplates] = useState<ContentTemplate[]>(mockContentTemplates);
 
   const unreadCount = activities.filter((a) => !a.read).length;
 
@@ -36,6 +41,52 @@ const Index = () => {
     setTasks((prev) =>
       prev.map((t) => (t.id === taskId ? { ...t, status } : t))
     );
+  };
+
+  // Customer Group handlers
+  const handleAddGroup = (group: Omit<CustomerGroup, 'id' | 'createdAt' | 'customerCount'>) => {
+    const newGroup: CustomerGroup = {
+      ...group,
+      id: `g-${Date.now()}`,
+      customerCount: 0,
+      createdAt: new Date(),
+    };
+    setCustomerGroups((prev) => [...prev, newGroup]);
+  };
+
+  const handleEditGroup = (id: string, updates: Partial<CustomerGroup>) => {
+    setCustomerGroups((prev) =>
+      prev.map((g) => (g.id === id ? { ...g, ...updates } : g))
+    );
+  };
+
+  const handleDeleteGroup = (id: string) => {
+    setCustomerGroups((prev) => prev.filter((g) => g.id !== id));
+  };
+
+  const handleImportCustomers = (groupId: string, customers: any[]) => {
+    console.log('Import customers to group:', groupId, customers);
+  };
+
+  // Content Template handlers
+  const handleAddTemplate = (template: Omit<ContentTemplate, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const newTemplate: ContentTemplate = {
+      ...template,
+      id: `ct-${Date.now()}`,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    setContentTemplates((prev) => [...prev, newTemplate]);
+  };
+
+  const handleEditTemplate = (id: string, updates: Partial<ContentTemplate>) => {
+    setContentTemplates((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, ...updates, updatedAt: new Date() } : t))
+    );
+  };
+
+  const handleDeleteTemplate = (id: string) => {
+    setContentTemplates((prev) => prev.filter((t) => t.id !== id));
   };
 
   const renderModule = () => {
@@ -56,6 +107,11 @@ const Index = () => {
             customerPrograms={mockCustomerPrograms}
             customers={mockCustomers}
             interactions={mockInteractions}
+            customerGroups={customerGroups}
+            onAddGroup={handleAddGroup}
+            onEditGroup={handleEditGroup}
+            onDeleteGroup={handleDeleteGroup}
+            onImportCustomers={handleImportCustomers}
           />
         );
       case 'compass':
@@ -64,6 +120,17 @@ const Index = () => {
         return (
           <MainStage>
             <TasksModule tasks={tasks} onTaskUpdate={handleTaskUpdate} />
+          </MainStage>
+        );
+      case 'content':
+        return (
+          <MainStage>
+            <ContentModule
+              templates={contentTemplates}
+              onAddTemplate={handleAddTemplate}
+              onEditTemplate={handleEditTemplate}
+              onDeleteTemplate={handleDeleteTemplate}
+            />
           </MainStage>
         );
       default:
