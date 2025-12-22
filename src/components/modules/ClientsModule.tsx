@@ -4,6 +4,7 @@ import { LeftRail } from '@/components/layout/LeftRail';
 import { MainStage } from '@/components/layout/MainStage';
 import { CustomerList } from './CustomerList';
 import { Customer360 } from './Customer360';
+import { ChatContainer } from '@/components/chat/ChatContainer';
 
 interface ClientsModuleProps {
   customerPrograms: CustomerProgram[];
@@ -88,6 +89,12 @@ export function ClientsModule({
           />
         )}
       </MainStage>
+
+      {/* Chat functionality */}
+      <ChatContainer 
+        customers={customers} 
+        customerGroups={customerGroups} 
+      />
     </div>
   );
 }
