@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, ChevronDown, ChevronRight, Plus, Filter, MoreHorizontal } from 'lucide-react';
+import { Search, ChevronDown, ChevronRight, Plus, Filter, MoreHorizontal, MessageCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CustomerProgram, CustomerSegment, CustomerGroup } from '@/types';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -20,6 +20,7 @@ interface LeftRailProps {
   onImportCustomers?: (groupId: string, customers: any[]) => void;
   selectedGroupId?: string | null;
   onSelectGroup?: (groupId: string) => void;
+  onOpenGroupChat?: (type: 'custom' | 'segment', groupId: string, groupName: string) => void;
 }
 
 const segmentGroups: { id: CustomerSegment; label: string; color: string }[] = [
@@ -40,6 +41,7 @@ export function LeftRail({
   onImportCustomers,
   selectedGroupId,
   onSelectGroup,
+  onOpenGroupChat,
 }: LeftRailProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedGroups, setExpandedGroups] = useState<CustomerSegment[]>(['need', 'risk', 'experience']);
@@ -100,6 +102,7 @@ export function LeftRail({
               onImportCustomers={onImportCustomers}
               onSelectGroup={onSelectGroup}
               selectedGroupId={selectedGroupId || null}
+              onOpenGroupChat={onOpenGroupChat ? (groupId, groupName) => onOpenGroupChat('custom', groupId, groupName) : undefined}
             />
             <Separator className="my-3" />
           </>
@@ -147,9 +150,8 @@ export function LeftRail({
                   className="overflow-hidden"
                 >
                   {group.programs.map((program) => (
-                    <button
+                    <div
                       key={program.id}
-                      onClick={() => onProgramSelect(program.id)}
                       className={cn(
                         'group flex w-full items-center gap-2 rounded-md px-3 py-2 text-left transition-colors ml-5',
                         selectedProgramId === program.id
@@ -157,14 +159,30 @@ export function LeftRail({
                           : 'hover:bg-left-rail-hover text-left-rail-foreground'
                       )}
                     >
-                      <div className="flex flex-1 flex-col min-w-0">
+                      <button
+                        onClick={() => onProgramSelect(program.id)}
+                        className="flex flex-1 flex-col min-w-0"
+                      >
                         <span className="truncate text-sm font-medium">{program.name}</span>
                         <span className="truncate text-xs text-muted-foreground">
                           {program.customerCount} khách hàng
                         </span>
-                      </div>
+                      </button>
+                      {onOpenGroupChat && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary flex-shrink-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onOpenGroupChat('segment', program.segment, program.name);
+                          }}
+                        >
+                          <MessageCircle className="h-4 w-4" />
+                        </Button>
+                      )}
                       <MoreHorizontal className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
-                    </button>
+                    </div>
                   ))}
                 </motion.div>
               )}

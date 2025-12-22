@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { MessageCircle } from 'lucide-react';
 import { Chat, ChatMessage } from '@/types/chat';
 import { Customer, CustomerGroup } from '@/types';
@@ -13,12 +13,16 @@ interface ChatContainerProps {
   customerGroups: CustomerGroup[];
 }
 
+export interface ChatContainerRef {
+  openGroupChat: (type: 'custom' | 'segment', groupId: string, groupName: string) => void;
+}
+
 // Mock initial chats
 const mockChats: Chat[] = [];
 
 const mockMessages: Record<string, ChatMessage[]> = {};
 
-export function ChatContainer({ customers, customerGroups }: ChatContainerProps) {
+export const ChatContainer = forwardRef<ChatContainerRef, ChatContainerProps>(({ customers, customerGroups }, ref) => {
   const [isOpen, setIsOpen] = useState(false);
   const [chats, setChats] = useState<Chat[]>(mockChats);
   const [messages, setMessages] = useState<Record<string, ChatMessage[]>>(mockMessages);
@@ -126,6 +130,14 @@ export function ChatContainer({ customers, customerGroups }: ChatContainerProps)
     setViewMode('chat');
   }, [chats, customers, customerGroups]);
 
+  // Expose openGroupChat method to parent
+  useImperativeHandle(ref, () => ({
+    openGroupChat: (type: 'custom' | 'segment', groupId: string, groupName: string) => {
+      setIsOpen(true);
+      handleCreateGroupChat(type, groupId, groupName);
+    }
+  }), [handleCreateGroupChat]);
+
   const handleSelectChat = useCallback((chatId: string) => {
     setSelectedChatId(chatId);
     setViewMode('chat');
@@ -222,4 +234,6 @@ export function ChatContainer({ customers, customerGroups }: ChatContainerProps)
       </AnimatePresence>
     </>
   );
-}
+});
+
+ChatContainer.displayName = 'ChatContainer';

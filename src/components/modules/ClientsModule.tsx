@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { Customer, CustomerProgram, Interaction, CustomerGroup } from '@/types';
 import { LeftRail } from '@/components/layout/LeftRail';
 import { MainStage } from '@/components/layout/MainStage';
 import { CustomerList } from './CustomerList';
 import { Customer360 } from './Customer360';
-import { ChatContainer } from '@/components/chat/ChatContainer';
+import { ChatContainer, ChatContainerRef } from '@/components/chat/ChatContainer';
 
 interface ClientsModuleProps {
   customerPrograms: CustomerProgram[];
@@ -30,6 +30,8 @@ export function ClientsModule({
   const [selectedProgramId, setSelectedProgramId] = useState<string | null>(customerPrograms[0]?.id || null);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+  
+  const chatContainerRef = useRef<ChatContainerRef>(null);
 
   const selectedProgram = customerPrograms.find((p) => p.id === selectedProgramId);
   const selectedGroup = customerGroups.find((g) => g.id === selectedGroupId);
@@ -58,6 +60,10 @@ export function ClientsModule({
     setSelectedCustomerId(null);
   };
 
+  const handleOpenGroupChat = useCallback((type: 'custom' | 'segment', groupId: string, groupName: string) => {
+    chatContainerRef.current?.openGroupChat(type, groupId, groupName);
+  }, []);
+
   return (
     <div className="flex h-full">
       <LeftRail
@@ -72,6 +78,7 @@ export function ClientsModule({
         onImportCustomers={onImportCustomers}
         selectedGroupId={selectedGroupId}
         onSelectGroup={handleGroupSelect}
+        onOpenGroupChat={handleOpenGroupChat}
       />
       <MainStage>
         {selectedCustomer ? (
@@ -92,6 +99,7 @@ export function ClientsModule({
 
       {/* Chat functionality */}
       <ChatContainer 
+        ref={chatContainerRef}
         customers={customers} 
         customerGroups={customerGroups} 
       />

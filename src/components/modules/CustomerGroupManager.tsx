@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Upload, Users, MoreHorizontal, Edit, Trash2, FileSpreadsheet, ChevronDown, ChevronRight } from 'lucide-react';
+import { Plus, Upload, Users, MoreHorizontal, Edit, Trash2, FileSpreadsheet, ChevronDown, ChevronRight, MessageCircle } from 'lucide-react';
 import { CustomerGroup } from '@/types';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
@@ -33,6 +33,7 @@ interface CustomerGroupManagerProps {
   onImportCustomers: (groupId: string, customers: any[]) => void;
   onSelectGroup: (groupId: string) => void;
   selectedGroupId: string | null;
+  onOpenGroupChat?: (groupId: string, groupName: string) => void;
 }
 
 const DEFAULT_VISIBLE_COUNT = 2;
@@ -45,6 +46,7 @@ export function CustomerGroupManager({
   onImportCustomers,
   onSelectGroup,
   selectedGroupId,
+  onOpenGroupChat,
 }: CustomerGroupManagerProps) {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -148,6 +150,19 @@ export function CustomerGroupManager({
                     <span className="text-sm font-medium truncate block">{group.name}</span>
                     <span className="text-xs text-muted-foreground">{group.customerCount} khách hàng</span>
                   </div>
+                  {onOpenGroupChat && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenGroupChat(group.id, group.name);
+                      }}
+                    >
+                      <MessageCircle className="h-4 w-4" />
+                    </Button>
+                  )}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                       <Button 
