@@ -27,6 +27,12 @@ import {
 } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -323,35 +329,58 @@ export function TasksModule({ tasks, onTaskUpdate }: TasksModuleProps) {
                     )}>
                       {format(day, 'd')}
                     </div>
-                    <div className="space-y-1">
-                      {dayTasks.slice(0, 3).map((task) => {
+                    <div className="flex flex-wrap gap-1">
+                      {dayTasks.map((task) => {
                         const TaskIcon = taskTypeIcons[task.type];
+                        const isOverdue = new Date(task.dueDate) < new Date() && task.status !== 'done';
                         return (
-                          <div
-                            key={task.id}
-                            onClick={() => {
-                              setSelectedTask(task);
-                              setEditedTask(task);
-                              setIsEditing(false);
-                            }}
-                            className={cn(
-                              'flex items-center gap-1.5 rounded px-1.5 py-1 text-xs cursor-pointer transition-all hover:scale-[1.02] hover:shadow-sm',
-                              task.status === 'done' ? 'bg-success/10 text-success hover:bg-success/20' : 
-                              task.status === 'in_progress' ? 'bg-warning/10 text-warning hover:bg-warning/20' : 
-                              'bg-muted text-foreground hover:bg-muted/80'
-                            )}
-                          >
-                            <span className={cn('h-1.5 w-1.5 rounded-full flex-shrink-0', statusColors[task.status])} />
-                            <TaskIcon className="h-3 w-3 flex-shrink-0" />
-                            <span className="truncate">{task.title}</span>
-                          </div>
+                          <TooltipProvider key={task.id} delayDuration={200}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  onClick={() => {
+                                    setSelectedTask(task);
+                                    setEditedTask(task);
+                                    setIsEditing(false);
+                                  }}
+                                  className={cn(
+                                    'flex items-center justify-center h-7 w-7 rounded-md cursor-pointer transition-all hover:scale-110 hover:shadow-md',
+                                    task.status === 'done' ? 'bg-success/20 text-success hover:bg-success/30' : 
+                                    task.status === 'in_progress' ? 'bg-warning/20 text-warning hover:bg-warning/30' : 
+                                    task.priority === 'high' ? 'bg-danger/20 text-danger hover:bg-danger/30' :
+                                    'bg-muted text-foreground hover:bg-muted/80',
+                                    isOverdue && task.status !== 'done' && 'ring-1 ring-danger/50'
+                                  )}
+                                >
+                                  <TaskIcon className="h-3.5 w-3.5" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-[250px] p-3">
+                                <div className="space-y-2">
+                                  <div className="flex items-center gap-2">
+                                    <span className={cn('h-2 w-2 rounded-full flex-shrink-0', statusColors[task.status])} />
+                                    <span className="font-medium text-sm line-clamp-2">{task.title}</span>
+                                  </div>
+                                  {task.customerName && (
+                                    <p className="text-xs text-muted-foreground">
+                                      Khách hàng: {task.customerName}
+                                    </p>
+                                  )}
+                                  <div className="flex items-center justify-between text-xs">
+                                    <Badge variant="outline" className={cn('text-[10px] px-1.5 py-0', priorityStyles[task.priority])}>
+                                      {priorityLabels[task.priority]}
+                                    </Badge>
+                                    <span className={cn(isOverdue && task.status !== 'done' ? 'text-danger font-medium' : 'text-muted-foreground')}>
+                                      {format(new Date(task.dueDate), 'dd/MM/yyyy', { locale: vi })}
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground italic">Click để xem chi tiết</p>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         );
                       })}
-                      {dayTasks.length > 3 && (
-                        <div className="text-xs text-muted-foreground pl-1">
-                          +{dayTasks.length - 3} nhiệm vụ khác
-                        </div>
-                      )}
                     </div>
                   </div>
                 );
