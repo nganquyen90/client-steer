@@ -20,9 +20,28 @@ import {
   LayoutGrid,
   CalendarDays,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  X,
+  Edit2,
+  Trash2
 } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface TasksModuleProps {
   tasks: Task[];
@@ -39,6 +58,14 @@ const taskTypeIcons = {
   other: MoreHorizontal,
 };
 
+const taskTypeLabels = {
+  call: 'Gọi điện',
+  email: 'Email',
+  meeting: 'Họp',
+  follow_up: 'Theo dõi',
+  other: 'Khác',
+};
+
 const priorityStyles = {
   low: 'bg-muted text-muted-foreground',
   medium: 'bg-warning/10 text-warning',
@@ -49,6 +76,12 @@ const priorityLabels = {
   low: 'Thấp',
   medium: 'Trung bình',
   high: 'Cao',
+};
+
+const statusLabels = {
+  todo: 'Cần làm',
+  in_progress: 'Đang làm',
+  done: 'Hoàn thành',
 };
 
 const columns: { id: Task['status']; title: string; icon: typeof Clock }[] = [
@@ -67,6 +100,9 @@ export function TasksModule({ tasks, onTaskUpdate }: TasksModuleProps) {
   const [draggedTask, setDraggedTask] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('kanban');
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedTask, setEditedTask] = useState<Task | null>(null);
 
   const handleDragStart = (taskId: string) => {
     setDraggedTask(taskId);
@@ -293,11 +329,16 @@ export function TasksModule({ tasks, onTaskUpdate }: TasksModuleProps) {
                         return (
                           <div
                             key={task.id}
+                            onClick={() => {
+                              setSelectedTask(task);
+                              setEditedTask(task);
+                              setIsEditing(false);
+                            }}
                             className={cn(
-                              'flex items-center gap-1.5 rounded px-1.5 py-1 text-xs cursor-pointer transition-colors hover:opacity-80',
-                              task.status === 'done' ? 'bg-success/10 text-success' : 
-                              task.status === 'in_progress' ? 'bg-warning/10 text-warning' : 
-                              'bg-muted text-foreground'
+                              'flex items-center gap-1.5 rounded px-1.5 py-1 text-xs cursor-pointer transition-all hover:scale-[1.02] hover:shadow-sm',
+                              task.status === 'done' ? 'bg-success/10 text-success hover:bg-success/20' : 
+                              task.status === 'in_progress' ? 'bg-warning/10 text-warning hover:bg-warning/20' : 
+                              'bg-muted text-foreground hover:bg-muted/80'
                             )}
                           >
                             <span className={cn('h-1.5 w-1.5 rounded-full flex-shrink-0', statusColors[task.status])} />
@@ -319,6 +360,234 @@ export function TasksModule({ tasks, onTaskUpdate }: TasksModuleProps) {
           </div>
         </div>
       )}
+
+      {/* Task Detail Dialog */}
+      <Dialog open={!!selectedTask} onOpenChange={(open) => {
+        if (!open) {
+          setSelectedTask(null);
+          setIsEditing(false);
+          setEditedTask(null);
+        }
+      }}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between pr-8">
+              {isEditing ? 'Chỉnh sửa nhiệm vụ' : 'Chi tiết nhiệm vụ'}
+            </DialogTitle>
+          </DialogHeader>
+
+          {selectedTask && !isEditing && (
+            <div className="space-y-4">
+              {/* Task header */}
+              <div className="flex items-start gap-3">
+                <div className={cn('flex h-10 w-10 items-center justify-center rounded-lg', priorityStyles[selectedTask.priority])}>
+                  {(() => {
+                    const TaskIcon = taskTypeIcons[selectedTask.type];
+                    return <TaskIcon className="h-5 w-5" />;
+                  })()}
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-lg">{selectedTask.title}</h3>
+                  {selectedTask.customerName && (
+                    <p className="text-sm text-muted-foreground">Khách hàng: {selectedTask.customerName}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Task details */}
+              <div className="space-y-3 rounded-lg bg-muted/30 p-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Loại</span>
+                  <span className="text-sm font-medium">{taskTypeLabels[selectedTask.type]}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Trạng thái</span>
+                  <Badge variant="outline" className={cn(
+                    selectedTask.status === 'done' ? 'bg-success/10 text-success border-success/30' :
+                    selectedTask.status === 'in_progress' ? 'bg-warning/10 text-warning border-warning/30' :
+                    'bg-muted text-muted-foreground'
+                  )}>
+                    {statusLabels[selectedTask.status]}
+                  </Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Độ ưu tiên</span>
+                  <Badge variant="outline" className={cn('text-xs', priorityStyles[selectedTask.priority])}>
+                    {priorityLabels[selectedTask.priority]}
+                  </Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Hạn hoàn thành</span>
+                  <span className={cn(
+                    'text-sm font-medium',
+                    new Date(selectedTask.dueDate) < new Date() && selectedTask.status !== 'done' && 'text-danger'
+                  )}>
+                    {format(new Date(selectedTask.dueDate), 'dd/MM/yyyy', { locale: vi })}
+                  </span>
+                </div>
+              </div>
+
+              {/* Description */}
+              {selectedTask.description && (
+                <div>
+                  <h4 className="text-sm font-medium mb-2">Mô tả</h4>
+                  <p className="text-sm text-muted-foreground bg-muted/30 rounded-lg p-3">
+                    {selectedTask.description}
+                  </p>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex gap-2 pt-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    setIsEditing(true);
+                    setEditedTask(selectedTask);
+                  }}
+                >
+                  <Edit2 className="h-4 w-4 mr-2" />
+                  Chỉnh sửa
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    if (selectedTask.status === 'done') {
+                      onTaskUpdate(selectedTask.id, 'todo');
+                    } else {
+                      onTaskUpdate(selectedTask.id, 'done');
+                    }
+                    setSelectedTask(null);
+                  }}
+                >
+                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                  {selectedTask.status === 'done' ? 'Mở lại' : 'Hoàn thành'}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Edit mode */}
+          {selectedTask && isEditing && editedTask && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="title">Tiêu đề</Label>
+                <Input
+                  id="title"
+                  value={editedTask.title}
+                  onChange={(e) => setEditedTask({ ...editedTask, title: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="description">Mô tả</Label>
+                <Textarea
+                  id="description"
+                  value={editedTask.description}
+                  onChange={(e) => setEditedTask({ ...editedTask, description: e.target.value })}
+                  rows={3}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Loại nhiệm vụ</Label>
+                  <Select
+                    value={editedTask.type}
+                    onValueChange={(value) => setEditedTask({ ...editedTask, type: value as Task['type'] })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="call">Gọi điện</SelectItem>
+                      <SelectItem value="email">Email</SelectItem>
+                      <SelectItem value="meeting">Họp</SelectItem>
+                      <SelectItem value="follow_up">Theo dõi</SelectItem>
+                      <SelectItem value="other">Khác</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Độ ưu tiên</Label>
+                  <Select
+                    value={editedTask.priority}
+                    onValueChange={(value) => setEditedTask({ ...editedTask, priority: value as Task['priority'] })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low">Thấp</SelectItem>
+                      <SelectItem value="medium">Trung bình</SelectItem>
+                      <SelectItem value="high">Cao</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Trạng thái</Label>
+                <Select
+                  value={editedTask.status}
+                  onValueChange={(value) => {
+                    setEditedTask({ ...editedTask, status: value as Task['status'] });
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todo">Cần làm</SelectItem>
+                    <SelectItem value="in_progress">Đang làm</SelectItem>
+                    <SelectItem value="done">Hoàn thành</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="dueDate">Hạn hoàn thành</Label>
+                <Input
+                  id="dueDate"
+                  type="date"
+                  value={format(new Date(editedTask.dueDate), 'yyyy-MM-dd')}
+                  onChange={(e) => setEditedTask({ ...editedTask, dueDate: new Date(e.target.value) })}
+                />
+              </div>
+
+              {/* Edit actions */}
+              <div className="flex gap-2 pt-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    setIsEditing(false);
+                    setEditedTask(selectedTask);
+                  }}
+                >
+                  Hủy
+                </Button>
+                <Button
+                  className="flex-1"
+                  onClick={() => {
+                    // Update task status
+                    if (editedTask.status !== selectedTask.status) {
+                      onTaskUpdate(editedTask.id, editedTask.status);
+                    }
+                    // In a real app, you would save all changes here
+                    setSelectedTask(editedTask);
+                    setIsEditing(false);
+                  }}
+                >
+                  Lưu thay đổi
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
