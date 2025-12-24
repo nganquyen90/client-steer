@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Journey, JourneyNode } from '@/types';
 import { Button } from '@/components/ui/button';
 import { 
@@ -14,12 +15,12 @@ import {
   GitBranch,
   CircleDot,
   Square,
-  Trash2,
-  MoreHorizontal
+  Trash2
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { NodeConfigPanel } from './NodeConfigPanel';
 
 interface JourneyBuilderProps {
   journey: Journey;
@@ -52,6 +53,25 @@ const toolboxItems = [
 ];
 
 export function JourneyBuilder({ journey, onBack }: JourneyBuilderProps) {
+  const [selectedNode, setSelectedNode] = useState<JourneyNode | null>(null);
+  const [journeyNodes, setJourneyNodes] = useState<JourneyNode[]>(journey.nodes);
+
+  const handleNodeClick = (node: JourneyNode) => {
+    setSelectedNode(node);
+  };
+
+  const handleNodeSave = (updatedNode: JourneyNode) => {
+    setJourneyNodes(prev => 
+      prev.map(n => n.id === updatedNode.id ? updatedNode : n)
+    );
+    setSelectedNode(null);
+  };
+
+  const handleNodeDelete = (nodeId: string) => {
+    setJourneyNodes(prev => prev.filter(n => n.id !== nodeId));
+    setSelectedNode(null);
+  };
+
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
@@ -122,7 +142,7 @@ export function JourneyBuilder({ journey, onBack }: JourneyBuilderProps) {
             <h3 className="text-sm font-medium text-muted-foreground mb-3">Thống kê</h3>
             <div className="space-y-2">
               <div className="rounded-lg bg-card p-2.5 border border-border">
-                <p className="text-xl font-bold text-primary">{journey.nodes.length}</p>
+                <p className="text-xl font-bold text-primary">{journeyNodes.length}</p>
                 <p className="text-xs text-muted-foreground">Tổng số bước</p>
               </div>
               <div className="rounded-lg bg-card p-2.5 border border-border">
@@ -137,17 +157,15 @@ export function JourneyBuilder({ journey, onBack }: JourneyBuilderProps) {
         <div className="flex-1 overflow-auto bg-muted/30">
           <div className="flex flex-col items-center py-6 px-4 min-h-full">
             {/* Draw nodes vertically */}
-            {journey.nodes.map((node, index) => {
+            {journeyNodes.map((node, index) => {
               const config = nodeTypeConfig[node.type];
               const Icon = node.type === 'touchpoint' && node.data.touchpointType
                 ? touchpointIcons[node.data.touchpointType]
                 : config.icon;
               
-              const nextNode = journey.nodes[index + 1];
-              const hasConnection = nextNode && journey.edges.some(
-                e => e.source === node.id && e.target === nextNode.id
-              );
+              const nextNode = journeyNodes[index + 1];
               const edge = journey.edges.find(e => e.source === node.id);
+              const isSelected = selectedNode?.id === node.id;
 
               return (
                 <div key={node.id} className="flex flex-col items-center">
@@ -157,14 +175,18 @@ export function JourneyBuilder({ journey, onBack }: JourneyBuilderProps) {
                     transition={{ delay: index * 0.05 }}
                   >
                     <div className="group relative">
-                      <div className={cn(
-                        'flex h-14 w-52 items-center gap-3 rounded-lg border-2 bg-card px-3 shadow-sm transition-all hover:shadow-md cursor-move',
-                        node.type === 'start' && 'border-success',
-                        node.type === 'end' && 'border-muted-foreground',
-                        node.type === 'touchpoint' && 'border-primary',
-                        node.type === 'wait' && 'border-warning',
-                        node.type === 'decision' && 'border-accent'
-                      )}>
+                      <button
+                        onClick={() => handleNodeClick(node)}
+                        className={cn(
+                          'flex h-14 w-52 items-center gap-3 rounded-lg border-2 bg-card px-3 shadow-sm transition-all hover:shadow-md cursor-pointer text-left',
+                          node.type === 'start' && 'border-success',
+                          node.type === 'end' && 'border-muted-foreground',
+                          node.type === 'touchpoint' && 'border-primary',
+                          node.type === 'wait' && 'border-warning',
+                          node.type === 'decision' && 'border-accent',
+                          isSelected && 'ring-2 ring-primary ring-offset-2'
+                        )}
+                      >
                         <div className={cn('flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg', config.color)}>
                           <Icon className="h-4 w-4" />
                         </div>
@@ -174,11 +196,17 @@ export function JourneyBuilder({ journey, onBack }: JourneyBuilderProps) {
                             <p className="text-xs text-muted-foreground">{node.data.waitDays} ngày</p>
                           )}
                         </div>
-                      </div>
+                      </button>
 
                       {/* Delete button */}
                       {node.type !== 'start' && node.type !== 'end' && (
-                        <button className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-danger text-danger-foreground opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleNodeDelete(node.id);
+                          }}
+                          className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-danger text-danger-foreground opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                        >
                           <Trash2 className="h-3 w-3" />
                         </button>
                       )}
@@ -186,7 +214,7 @@ export function JourneyBuilder({ journey, onBack }: JourneyBuilderProps) {
                   </motion.div>
 
                   {/* Connector line */}
-                  {index < journey.nodes.length - 1 && (
+                  {index < journeyNodes.length - 1 && (
                     <div className="flex flex-col items-center py-1">
                       <div className="w-0.5 h-6 bg-border" />
                       {edge?.label && (
@@ -205,7 +233,7 @@ export function JourneyBuilder({ journey, onBack }: JourneyBuilderProps) {
             <motion.button
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: journey.nodes.length * 0.05 }}
+              transition={{ delay: journeyNodes.length * 0.05 }}
               className="mt-4 flex items-center gap-2 rounded-lg border-2 border-dashed border-border bg-card/50 px-4 py-2 text-muted-foreground hover:border-primary/50 hover:text-primary transition-all"
             >
               <Plus className="h-4 w-4" />
@@ -213,6 +241,25 @@ export function JourneyBuilder({ journey, onBack }: JourneyBuilderProps) {
             </motion.button>
           </div>
         </div>
+
+        {/* Node Config Panel */}
+        <AnimatePresence>
+          {selectedNode && (
+            <motion.div
+              initial={{ x: 320, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: 320, opacity: 0 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            >
+              <NodeConfigPanel
+                node={selectedNode}
+                onClose={() => setSelectedNode(null)}
+                onSave={handleNodeSave}
+                onDelete={() => handleNodeDelete(selectedNode.id)}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
