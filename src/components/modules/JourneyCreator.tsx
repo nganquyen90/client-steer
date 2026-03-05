@@ -197,16 +197,26 @@ export function JourneyCreator({
     const newNodeId = `n-${Date.now()}`;
     const endNodeIndex = journeyNodes.findIndex(n => n.type === 'end');
     
+    const labelMap: Record<string, string> = {
+      'touchpoint': subtype === 'email' ? 'Email mới' : subtype === 'sms' ? 'SMS mới' : subtype === 'call' ? 'Gọi điện mới' : subtype === 'notification' ? 'Notification mới' : 'Điểm chạm mới',
+      'wait': 'Chờ 1 ngày',
+      'decision': 'Điều kiện mới',
+      'kyc': 'Xác thực KYC',
+      'authorization': 'Phân quyền & Định mức',
+      'esign': 'Ký điện tử',
+    };
+
     const newNode: JourneyNode = {
       id: newNodeId,
       type: type as JourneyNode['type'],
       position: { x: 0, y: 0 },
       data: {
-        label: type === 'touchpoint' 
-          ? `${subtype === 'email' ? 'Email' : subtype === 'sms' ? 'SMS' : subtype === 'call' ? 'Gọi điện' : subtype === 'notification' ? 'Notification' : 'Điểm chạm'} mới`
-          : type === 'wait' ? 'Chờ 1 ngày' : 'Điều kiện mới',
+        label: labelMap[type] || 'Bước mới',
         ...(type === 'touchpoint' && { touchpointType: subtype as TouchpointType }),
         ...(type === 'wait' && { waitDays: 1 }),
+        ...(type === 'kyc' && { kycConfig: { method: 'cccd' as const, steps: ['id_front' as const, 'id_back' as const, 'face_matching' as const, 'ocr_verify' as const, 'db_check' as const], maxRetries: 3, manualReviewOnFail: true, failAction: 'create_task' as const } }),
+        ...(type === 'authorization' && { authorizationConfig: { checkType: 'credit_score' as const, rules: [], defaultTier: 'standard' } }),
+        ...(type === 'esign' && { esignConfig: { method: 'otp' as const, documentType: 'contract' as const, requireWitness: false, expiryHours: 24 } }),
       },
     };
 
