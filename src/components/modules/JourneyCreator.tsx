@@ -20,7 +20,10 @@ import {
   CircleDot,
   Square,
   Plus,
-  Trash2
+  Trash2,
+  ShieldCheck,
+  KeyRound,
+  PenTool
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -42,12 +45,15 @@ interface JourneyCreatorProps {
   onCreate: (data: { name: string; targetType: 'program' | 'group'; targetId: string; nodes: JourneyNode[] }) => void;
 }
 
-const nodeTypeConfig = {
+const nodeTypeConfig: Record<string, { icon: any; label: string; color: string }> = {
   start: { icon: CircleDot, label: 'Bắt đầu', color: 'bg-success text-success-foreground' },
   touchpoint: { icon: Mail, label: 'Điểm chạm', color: 'bg-primary text-primary-foreground' },
   wait: { icon: Clock, label: 'Chờ', color: 'bg-warning text-warning-foreground' },
   decision: { icon: GitBranch, label: 'Điều kiện', color: 'bg-accent text-accent-foreground' },
   end: { icon: Square, label: 'Kết thúc', color: 'bg-muted-foreground text-background' },
+  kyc: { icon: ShieldCheck, label: 'Xác thực KYC', color: 'bg-cyan-600 text-white' },
+  authorization: { icon: KeyRound, label: 'Phân quyền', color: 'bg-amber-600 text-white' },
+  esign: { icon: PenTool, label: 'Ký điện tử', color: 'bg-violet-600 text-white' },
 };
 
 const touchpointIcons: Record<string, typeof Mail> = {
@@ -65,6 +71,9 @@ const toolboxItems = [
   { type: 'touchpoint', subtype: 'call', icon: Phone, label: 'Gọi điện' },
   { type: 'wait', icon: Clock, label: 'Chờ' },
   { type: 'decision', icon: GitBranch, label: 'Điều kiện' },
+  { type: 'kyc', icon: ShieldCheck, label: 'Xác thực KYC' },
+  { type: 'authorization', icon: KeyRound, label: 'Phân quyền' },
+  { type: 'esign', icon: PenTool, label: 'Ký điện tử' },
 ];
 
 type TouchpointType = 'email' | 'sms' | 'notification' | 'call' | 'chat';
@@ -127,6 +136,24 @@ const templates: Array<{
       { id: 'n-3', type: 'end', position: { x: 0, y: 0 }, data: { label: 'Kết thúc' } },
     ],
   },
+  {
+    id: 'margin',
+    name: 'Cấp phát hạn mức Margin',
+    description: 'Hành trình đầy đủ từ KYC → Phân quyền → Ký hợp đồng cho khách hàng mới',
+    steps: 9,
+    nodes: [
+      { id: 'n-1', type: 'start', position: { x: 0, y: 0 }, data: { label: 'KH đăng ký mới', description: 'Khách hàng đăng ký thông tin cơ bản (Tên, SĐT)' } },
+      { id: 'n-2', type: 'touchpoint', position: { x: 0, y: 0 }, data: { label: 'Email chào mừng + link App', touchpointType: 'email' as TouchpointType } },
+      { id: 'n-3', type: 'kyc', position: { x: 0, y: 0 }, data: { label: 'Xác thực KYC (CCCD + Face)', description: 'Chụp CCCD, quét khuôn mặt, OCR, đối chiếu CSDL', kycConfig: { method: 'cccd', steps: ['id_front', 'id_back', 'face_matching', 'ocr_verify', 'db_check'], maxRetries: 3, manualReviewOnFail: true, failAction: 'create_task' } } },
+      { id: 'n-4', type: 'decision', position: { x: 0, y: 0 }, data: { label: 'KYC thành công?', condition: 'kyc_result == success' } },
+      { id: 'n-5', type: 'authorization', position: { x: 0, y: 0 }, data: { label: 'Phân quyền & Định mức Margin', description: 'Kiểm tra CIC, cấp hạn mức phù hợp', authorizationConfig: { checkType: 'credit_score', rules: [], defaultTier: 'standard' } } },
+      { id: 'n-6', type: 'touchpoint', position: { x: 0, y: 0 }, data: { label: 'Notification: Chúc mừng cấp hạn mức', touchpointType: 'notification' as TouchpointType } },
+      { id: 'n-7', type: 'esign', position: { x: 0, y: 0 }, data: { label: 'Ký hợp đồng điện tử', description: 'Ký HĐ bằng OTP/Biometrics', esignConfig: { method: 'otp', documentType: 'contract', requireWitness: false, expiryHours: 24 } } },
+      { id: 'n-8', type: 'wait', position: { x: 0, y: 0 }, data: { label: 'Chờ 2 giờ', waitDays: 0, description: 'Chờ 2 giờ sau khi ký thành công' } },
+      { id: 'n-9', type: 'touchpoint', position: { x: 0, y: 0 }, data: { label: 'Email hướng dẫn sử dụng App', touchpointType: 'email' as TouchpointType } },
+      { id: 'n-10', type: 'end', position: { x: 0, y: 0 }, data: { label: 'Hoàn thành - Sẵn sàng giao dịch' } },
+    ],
+  },
 ];
 
 export function JourneyCreator({
@@ -170,16 +197,26 @@ export function JourneyCreator({
     const newNodeId = `n-${Date.now()}`;
     const endNodeIndex = journeyNodes.findIndex(n => n.type === 'end');
     
+    const labelMap: Record<string, string> = {
+      'touchpoint': subtype === 'email' ? 'Email mới' : subtype === 'sms' ? 'SMS mới' : subtype === 'call' ? 'Gọi điện mới' : subtype === 'notification' ? 'Notification mới' : 'Điểm chạm mới',
+      'wait': 'Chờ 1 ngày',
+      'decision': 'Điều kiện mới',
+      'kyc': 'Xác thực KYC',
+      'authorization': 'Phân quyền & Định mức',
+      'esign': 'Ký điện tử',
+    };
+
     const newNode: JourneyNode = {
       id: newNodeId,
       type: type as JourneyNode['type'],
       position: { x: 0, y: 0 },
       data: {
-        label: type === 'touchpoint' 
-          ? `${subtype === 'email' ? 'Email' : subtype === 'sms' ? 'SMS' : subtype === 'call' ? 'Gọi điện' : subtype === 'notification' ? 'Notification' : 'Điểm chạm'} mới`
-          : type === 'wait' ? 'Chờ 1 ngày' : 'Điều kiện mới',
+        label: labelMap[type] || 'Bước mới',
         ...(type === 'touchpoint' && { touchpointType: subtype as TouchpointType }),
         ...(type === 'wait' && { waitDays: 1 }),
+        ...(type === 'kyc' && { kycConfig: { method: 'cccd' as const, steps: ['id_front' as const, 'id_back' as const, 'face_matching' as const, 'ocr_verify' as const, 'db_check' as const], maxRetries: 3, manualReviewOnFail: true, failAction: 'create_task' as const } }),
+        ...(type === 'authorization' && { authorizationConfig: { checkType: 'credit_score' as const, rules: [], defaultTier: 'standard' } }),
+        ...(type === 'esign' && { esignConfig: { method: 'otp' as const, documentType: 'contract' as const, requireWitness: false, expiryHours: 24 } }),
       },
     };
 
@@ -568,6 +605,9 @@ export function JourneyCreator({
                                 node.type === 'touchpoint' && 'border-primary',
                                 node.type === 'wait' && 'border-warning',
                                 node.type === 'decision' && 'border-accent',
+                                node.type === 'kyc' && 'border-cyan-600',
+                                node.type === 'authorization' && 'border-amber-600',
+                                node.type === 'esign' && 'border-violet-600',
                                 isSelected && 'ring-2 ring-primary ring-offset-2'
                               )}
                             >

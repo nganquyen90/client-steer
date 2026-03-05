@@ -104,9 +104,39 @@ export interface Task {
   completedAt?: Date;
 }
 
+export interface KycConfig {
+  method: 'cccd' | 'passport' | 'driver_license';
+  steps: ('id_front' | 'id_back' | 'face_matching' | 'ocr_verify' | 'db_check')[];
+  maxRetries: number;
+  manualReviewOnFail: boolean;
+  failAction?: 'notify_sms' | 'notify_email' | 'create_task' | 'block';
+}
+
+export interface AuthorizationConfig {
+  checkType: 'credit_score' | 'transaction_history' | 'asset_check' | 'manual_review';
+  rules: AuthorizationRule[];
+  defaultTier: string;
+}
+
+export interface AuthorizationRule {
+  id: string;
+  condition: string;
+  tier: string;
+  permissions: string[];
+  creditLimit?: number;
+}
+
+export interface EsignConfig {
+  method: 'otp' | 'biometric' | 'digital_signature' | 'face_id';
+  documentType: 'contract' | 'agreement' | 'consent' | 'power_of_attorney';
+  requireWitness: boolean;
+  expiryHours: number;
+  fallbackMethod?: 'otp' | 'manual';
+}
+
 export interface JourneyNode {
   id: string;
-  type: 'start' | 'touchpoint' | 'decision' | 'wait' | 'end';
+  type: 'start' | 'touchpoint' | 'decision' | 'wait' | 'end' | 'kyc' | 'authorization' | 'esign';
   position: { x: number; y: number };
   data: {
     label: string;
@@ -114,6 +144,9 @@ export interface JourneyNode {
     condition?: string;
     waitDays?: number;
     touchpointType?: TouchPoint['type'];
+    kycConfig?: KycConfig;
+    authorizationConfig?: AuthorizationConfig;
+    esignConfig?: EsignConfig;
   };
 }
 

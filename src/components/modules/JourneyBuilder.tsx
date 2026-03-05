@@ -15,7 +15,10 @@ import {
   GitBranch,
   CircleDot,
   Square,
-  Trash2
+  Trash2,
+  ShieldCheck,
+  KeyRound,
+  PenTool
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -27,15 +30,18 @@ interface JourneyBuilderProps {
   onBack: () => void;
 }
 
-const nodeTypeConfig = {
+const nodeTypeConfig: Record<string, { icon: any; label: string; color: string }> = {
   start: { icon: CircleDot, label: 'Bắt đầu', color: 'bg-success text-success-foreground' },
   touchpoint: { icon: Mail, label: 'Điểm chạm', color: 'bg-primary text-primary-foreground' },
   wait: { icon: Clock, label: 'Chờ', color: 'bg-warning text-warning-foreground' },
   decision: { icon: GitBranch, label: 'Điều kiện', color: 'bg-accent text-accent-foreground' },
   end: { icon: Square, label: 'Kết thúc', color: 'bg-muted-foreground text-background' },
+  kyc: { icon: ShieldCheck, label: 'Xác thực KYC', color: 'bg-cyan-600 text-white' },
+  authorization: { icon: KeyRound, label: 'Phân quyền', color: 'bg-amber-600 text-white' },
+  esign: { icon: PenTool, label: 'Ký điện tử', color: 'bg-violet-600 text-white' },
 };
 
-const touchpointIcons = {
+const touchpointIcons: Record<string, any> = {
   email: Mail,
   sms: MessageSquare,
   notification: Bell,
@@ -50,6 +56,9 @@ const toolboxItems = [
   { type: 'touchpoint', subtype: 'call', icon: Phone, label: 'Gọi điện' },
   { type: 'wait', icon: Clock, label: 'Chờ' },
   { type: 'decision', icon: GitBranch, label: 'Điều kiện' },
+  { type: 'kyc', icon: ShieldCheck, label: 'Xác thực KYC' },
+  { type: 'authorization', icon: KeyRound, label: 'Phân quyền' },
+  { type: 'esign', icon: PenTool, label: 'Ký điện tử' },
 ];
 
 export function JourneyBuilder({ journey, onBack }: JourneyBuilderProps) {
