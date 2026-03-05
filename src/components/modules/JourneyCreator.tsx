@@ -20,7 +20,10 @@ import {
   CircleDot,
   Square,
   Plus,
-  Trash2
+  Trash2,
+  ShieldCheck,
+  KeyRound,
+  PenTool
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
