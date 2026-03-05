@@ -605,6 +605,9 @@ export function JourneyCreator({
                                 node.type === 'touchpoint' && 'border-primary',
                                 node.type === 'wait' && 'border-warning',
                                 node.type === 'decision' && 'border-accent',
+                                node.type === 'kyc' && 'border-cyan-600',
+                                node.type === 'authorization' && 'border-amber-600',
+                                node.type === 'esign' && 'border-violet-600',
                                 isSelected && 'ring-2 ring-primary ring-offset-2'
                               )}
                             >
