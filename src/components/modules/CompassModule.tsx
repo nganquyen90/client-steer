@@ -115,14 +115,14 @@ export function CompassModule({
     setViewMode('list');
   };
 
-  const handleCreateJourney = (journeyData: { name: string; targetType: 'program' | 'group'; targetId: string }) => {
+  const handleCreateJourney = (journeyData: { name: string; targetType: 'program' | 'group'; targetId: string; nodes?: any[] }) => {
     const newJourney: Journey = {
       id: `j-${Date.now()}`,
       name: journeyData.name,
       customerProgramId: journeyData.targetId,
       status: 'draft',
       createdAt: new Date(),
-      nodes: [
+      nodes: journeyData.nodes || [
         { id: 'n-start', type: 'start', position: { x: 100, y: 200 }, data: { label: 'Bắt đầu' } },
         { id: 'n-end', type: 'end', position: { x: 300, y: 200 }, data: { label: 'Kết thúc' } },
       ],
