@@ -54,6 +54,26 @@ const mockJourneys: Journey[] = [
     nodes: [],
     edges: [],
   },
+  {
+    id: 'j-3',
+    name: 'Cấp phát hạn mức Margin',
+    customerProgramId: 'cp-1',
+    status: 'active',
+    createdAt: new Date('2025-03-01'),
+    nodes: [
+      { id: 'n-1', type: 'start', position: { x: 0, y: 0 }, data: { label: 'KH đăng ký mới', description: 'Khách hàng mới đăng ký thông tin cơ bản (Tên, SĐT)' } },
+      { id: 'n-2', type: 'touchpoint', position: { x: 0, y: 0 }, data: { label: 'Email chào mừng + link App', touchpointType: 'email' } },
+      { id: 'n-3', type: 'kyc', position: { x: 0, y: 0 }, data: { label: 'Xác thực KYC (CCCD + Face)', description: 'Chụp CCCD, quét khuôn mặt, OCR, đối chiếu CSDL', kycConfig: { method: 'cccd', steps: ['id_front', 'id_back', 'face_matching', 'ocr_verify', 'db_check'], maxRetries: 3, manualReviewOnFail: true, failAction: 'create_task' } } },
+      { id: 'n-4', type: 'decision', position: { x: 0, y: 0 }, data: { label: 'KYC thành công?', condition: 'kyc_result == success' } },
+      { id: 'n-5', type: 'authorization', position: { x: 0, y: 0 }, data: { label: 'Phân quyền & Định mức Margin', description: 'Kiểm tra CIC, cấp hạn mức phù hợp', authorizationConfig: { checkType: 'credit_score', rules: [], defaultTier: 'standard' } } },
+      { id: 'n-6', type: 'touchpoint', position: { x: 0, y: 0 }, data: { label: 'Notification: Chúc mừng cấp hạn mức', touchpointType: 'notification' } },
+      { id: 'n-7', type: 'esign', position: { x: 0, y: 0 }, data: { label: 'Ký hợp đồng điện tử', description: 'Ký HĐ bằng OTP/Biometrics', esignConfig: { method: 'otp', documentType: 'contract', requireWitness: false, expiryHours: 24 } } },
+      { id: 'n-8', type: 'wait', position: { x: 0, y: 0 }, data: { label: 'Chờ 2 giờ', waitDays: 0, description: 'Chờ 2 giờ sau khi ký thành công' } },
+      { id: 'n-9', type: 'touchpoint', position: { x: 0, y: 0 }, data: { label: 'Email hướng dẫn sử dụng App', touchpointType: 'email' } },
+      { id: 'n-10', type: 'end', position: { x: 0, y: 0 }, data: { label: 'Hoàn thành - Sẵn sàng giao dịch' } },
+    ],
+    edges: [],
+  },
 ];
 
 type ViewMode = 'list' | 'builder' | 'creator';
@@ -95,14 +115,14 @@ export function CompassModule({
     setViewMode('list');
   };
 
-  const handleCreateJourney = (journeyData: { name: string; targetType: 'program' | 'group'; targetId: string }) => {
+  const handleCreateJourney = (journeyData: { name: string; targetType: 'program' | 'group'; targetId: string; nodes?: any[] }) => {
     const newJourney: Journey = {
       id: `j-${Date.now()}`,
       name: journeyData.name,
       customerProgramId: journeyData.targetId,
       status: 'draft',
       createdAt: new Date(),
-      nodes: [
+      nodes: journeyData.nodes || [
         { id: 'n-start', type: 'start', position: { x: 100, y: 200 }, data: { label: 'Bắt đầu' } },
         { id: 'n-end', type: 'end', position: { x: 300, y: 200 }, data: { label: 'Kết thúc' } },
       ],
