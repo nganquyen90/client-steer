@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { JourneyNode } from '@/types';
+import { JourneyNode, NodeInfo, NodeRule, NodeExecution, KycConfig, AuthorizationConfig, EsignConfig } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,32 +10,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { 
-  X, 
-  Mail, 
-  MessageSquare, 
-  Bell, 
-  Phone, 
-  Clock, 
-  GitBranch,
-  CircleDot,
-  Square,
-  Save,
-  Trash2,
-  Sparkles,
-  Users,
-  Calendar,
-  FileText,
-  Settings2,
-  Zap,
-  ShieldCheck,
-  KeyRound,
-  PenTool,
-  ScanFace,
-  CreditCard,
-  Fingerprint,
-  AlertTriangle,
-  CheckCircle2,
-  Plus
+  X, Mail, MessageSquare, Bell, Phone, Clock, 
+  Save, Trash2, Sparkles, Users, Calendar, FileText, 
+  Settings2, Zap, ShieldCheck, KeyRound, PenTool,
+  ScanFace, CreditCard, Fingerprint, AlertTriangle, 
+  CheckCircle2, Plus, Info, BookOpen, Play,
+  Globe, Link, ArrowRightLeft, Workflow
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -46,35 +26,27 @@ interface NodeConfigPanelProps {
   onDelete?: () => void;
 }
 
-const nodeTypeConfig: Record<string, { icon: any; label: string; color: string }> = {
-  start: { icon: CircleDot, label: 'Bắt đầu', color: 'text-success' },
-  touchpoint: { icon: Mail, label: 'Điểm chạm', color: 'text-primary' },
-  wait: { icon: Clock, label: 'Chờ', color: 'text-warning' },
-  decision: { icon: GitBranch, label: 'Điều kiện', color: 'text-accent' },
-  end: { icon: Square, label: 'Kết thúc', color: 'text-muted-foreground' },
-  kyc: { icon: ShieldCheck, label: 'Xác thực KYC', color: 'text-cyan-500' },
-  authorization: { icon: KeyRound, label: 'Phân quyền', color: 'text-amber-500' },
-  esign: { icon: PenTool, label: 'Ký điện tử', color: 'text-violet-500' },
+const nodeTypeConfig: Record<string, { icon: any; label: string; color: string; description: string }> = {
+  interact: { icon: Mail, label: 'Tương tác', color: 'text-primary', description: 'Gửi thông điệp đa kênh (Omnichannel)' },
+  authen: { icon: ShieldCheck, label: 'Xác thực (KYC)', color: 'text-cyan-500', description: 'Xác thực danh tính khách hàng' },
+  author: { icon: KeyRound, label: 'Phân quyền', color: 'text-amber-500', description: 'Kiểm tra & cấp quyền hạn mức' },
 };
-
-const touchpointTypes = [
-  { value: 'email', label: 'Email', icon: Mail },
-  { value: 'sms', label: 'SMS', icon: MessageSquare },
-  { value: 'notification', label: 'Thông báo', icon: Bell },
-  { value: 'call', label: 'Gọi điện', icon: Phone },
-  { value: 'chat', label: 'Chat', icon: MessageSquare },
-];
 
 export function NodeConfigPanel({ node, onClose, onSave, onDelete }: NodeConfigPanelProps) {
   const [editedNode, setEditedNode] = useState<JourneyNode>({ ...node });
   const config = nodeTypeConfig[node.type];
   const Icon = config.icon;
 
-  const updateData = (updates: Partial<JourneyNode['data']>) => {
-    setEditedNode(prev => ({
-      ...prev,
-      data: { ...prev.data, ...updates }
-    }));
+  const updateInfo = (updates: Partial<NodeInfo>) => {
+    setEditedNode(prev => ({ ...prev, info: { ...prev.info, ...updates } }));
+  };
+
+  const updateRule = (updates: Partial<NodeRule>) => {
+    setEditedNode(prev => ({ ...prev, rule: { ...prev.rule, ...updates } }));
+  };
+
+  const updateExecution = (updates: Partial<NodeExecution>) => {
+    setEditedNode(prev => ({ ...prev, execution: { ...prev.execution, ...updates } }));
   };
 
   const handleSave = () => {
@@ -82,479 +54,455 @@ export function NodeConfigPanel({ node, onClose, onSave, onDelete }: NodeConfigP
     onClose();
   };
 
-  // ===== START CONFIG =====
-  const renderStartConfig = () => (
+  // ===== A. INFO TAB =====
+  const renderInfoTab = () => (
     <div className="space-y-4">
-      <div className="rounded-lg border border-border bg-muted/30 p-4">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
-          <Users className="h-4 w-4" />
-          <span>Điều kiện kích hoạt</span>
-        </div>
-        <Select defaultValue="segment">
-          <SelectTrigger>
-            <SelectValue placeholder="Chọn điều kiện" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="segment">Thuộc phân khúc khách hàng</SelectItem>
-            <SelectItem value="event">Khi có sự kiện</SelectItem>
-            <SelectItem value="registration">Khi đăng ký mới</SelectItem>
-            <SelectItem value="manual">Thêm thủ công</SelectItem>
-            <SelectItem value="import">Import từ file</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
       <div className="space-y-2">
-        <Label>Mô tả</Label>
+        <Label>Tên Node</Label>
+        <Input 
+          value={editedNode.info.label} 
+          onChange={(e) => updateInfo({ label: e.target.value })}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label>Mô tả mục đích</Label>
         <Textarea 
-          value={editedNode.data.description || ''} 
-          onChange={(e) => updateData({ description: e.target.value })}
-          placeholder="Mô tả điểm bắt đầu..."
+          value={editedNode.info.description || ''} 
+          onChange={(e) => updateInfo({ description: e.target.value })}
+          placeholder="Mô tả mục đích của bước này..."
           rows={3}
         />
       </div>
 
-      <div className="flex items-center justify-between rounded-lg border border-border p-3">
-        <div className="flex items-center gap-2">
-          <Zap className="h-4 w-4 text-warning" />
-          <span className="text-sm">Tự động thêm khách hàng mới</span>
+      {/* Node Type Badge */}
+      <div className="rounded-lg border border-border bg-muted/30 p-3">
+        <div className="flex items-center gap-2 mb-2">
+          <Icon className={cn("h-4 w-4", config.color)} />
+          <span className="text-sm font-medium">{config.label}</span>
         </div>
-        <Switch defaultChecked />
+        <p className="text-xs text-muted-foreground">{config.description}</p>
       </div>
-    </div>
-  );
 
-  // ===== TOUCHPOINT CONFIG =====
-  const renderTouchpointConfig = () => (
-    <Tabs defaultValue="content" className="w-full">
-      <TabsList className="w-full grid grid-cols-3">
-        <TabsTrigger value="content">Nội dung</TabsTrigger>
-        <TabsTrigger value="settings">Cài đặt</TabsTrigger>
-        <TabsTrigger value="preview">Xem trước</TabsTrigger>
-      </TabsList>
-
-      <TabsContent value="content" className="space-y-4 mt-4">
-        <div className="space-y-2">
-          <Label>Loại điểm chạm</Label>
-          <Select 
-            value={editedNode.data.touchpointType || 'email'}
-            onValueChange={(value) => updateData({ touchpointType: value as any })}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {touchpointTypes.map((type) => {
-                const TypeIcon = type.icon;
-                return (
-                  <SelectItem key={type.value} value={type.value}>
-                    <div className="flex items-center gap-2">
-                      <TypeIcon className="h-4 w-4" />
-                      <span>{type.label}</span>
-                    </div>
-                  </SelectItem>
-                );
-              })}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {(editedNode.data.touchpointType === 'email' || !editedNode.data.touchpointType) && (
-          <>
-            <div className="space-y-2">
-              <Label>Tiêu đề email</Label>
-              <Input 
-                placeholder="Chào mừng bạn đến với chương trình..." 
-                value={editedNode.data.label}
-                onChange={(e) => updateData({ label: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>Nội dung email</Label>
-                <Button variant="ghost" size="sm" className="h-7 text-xs gap-1">
-                  <Sparkles className="h-3 w-3" />
-                  AI viết nội dung
-                </Button>
-              </div>
-              <Textarea placeholder="Nội dung email..." rows={6} className="font-mono text-sm" />
-            </div>
-            <div className="space-y-2">
-              <Label>Mẫu email</Label>
-              <Select defaultValue="welcome">
-                <SelectTrigger><SelectValue placeholder="Chọn mẫu" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="welcome">Chào mừng khách hàng mới</SelectItem>
-                  <SelectItem value="promo">Thông báo khuyến mãi</SelectItem>
-                  <SelectItem value="reminder">Nhắc nhở thanh toán</SelectItem>
-                  <SelectItem value="feedback">Khảo sát ý kiến</SelectItem>
-                  <SelectItem value="custom">Tùy chỉnh</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </>
-        )}
-
-        {editedNode.data.touchpointType === 'sms' && (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label>Nội dung SMS</Label>
-              <Badge variant="outline" className="text-xs">0/160 ký tự</Badge>
-            </div>
-            <Textarea placeholder="Nội dung tin nhắn SMS..." rows={4} maxLength={160} />
-          </div>
-        )}
-
-        {editedNode.data.touchpointType === 'call' && (
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Script cuộc gọi</Label>
-              <Textarea placeholder="Kịch bản cuộc gọi..." rows={6} />
-            </div>
-            <div className="space-y-2">
-              <Label>Phân công nhân viên</Label>
-              <Select defaultValue="auto">
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="auto">Tự động phân công</SelectItem>
-                  <SelectItem value="sales">Phòng kinh doanh</SelectItem>
-                  <SelectItem value="support">Phòng hỗ trợ</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        )}
-      </TabsContent>
-
-      <TabsContent value="settings" className="space-y-4 mt-4">
-        <div className="space-y-2">
-          <Label>Thời gian gửi</Label>
-          <Select defaultValue="immediate">
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="immediate">Ngay lập tức</SelectItem>
-              <SelectItem value="morning">Sáng (8:00 - 10:00)</SelectItem>
-              <SelectItem value="afternoon">Chiều (14:00 - 16:00)</SelectItem>
-              <SelectItem value="evening">Tối (18:00 - 20:00)</SelectItem>
-              <SelectItem value="custom">Tùy chỉnh</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="flex items-center justify-between rounded-lg border border-border p-3">
-          <div>
-            <p className="text-sm font-medium">Gửi lại nếu thất bại</p>
-            <p className="text-xs text-muted-foreground">Tự động gửi lại sau 1 giờ</p>
-          </div>
-          <Switch defaultChecked />
-        </div>
-        <div className="flex items-center justify-between rounded-lg border border-border p-3">
-          <div>
-            <p className="text-sm font-medium">Theo dõi mở/click</p>
-            <p className="text-xs text-muted-foreground">Ghi nhận khi khách hàng tương tác</p>
-          </div>
-          <Switch defaultChecked />
-        </div>
-        <div className="space-y-2">
-          <Label>Giới hạn gửi/ngày</Label>
-          <Input type="number" defaultValue={1000} min={1} />
-        </div>
-      </TabsContent>
-
-      <TabsContent value="preview" className="mt-4">
-        <div className="rounded-lg border border-border bg-card p-4">
-          <div className="text-center text-muted-foreground py-8">
-            <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">Xem trước nội dung sẽ hiển thị ở đây</p>
-          </div>
-        </div>
-      </TabsContent>
-    </Tabs>
-  );
-
-  // ===== WAIT CONFIG =====
-  const renderWaitConfig = () => (
-    <div className="space-y-4">
-      <div className="space-y-2">
-        <Label>Loại chờ</Label>
-        <Select defaultValue="days">
-          <SelectTrigger><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="days">Số ngày</SelectItem>
-            <SelectItem value="hours">Số giờ</SelectItem>
-            <SelectItem value="until_date">Đến ngày cụ thể</SelectItem>
-            <SelectItem value="until_event">Đến khi có sự kiện</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="space-y-2">
-        <Label>Thời gian chờ</Label>
-        <div className="flex gap-2">
-          <Input 
-            type="number" 
-            value={editedNode.data.waitDays || 1}
-            onChange={(e) => updateData({ waitDays: parseInt(e.target.value) || 1 })}
-            min={1}
-            className="flex-1"
-          />
-          <Select defaultValue="days">
-            <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="hours">Giờ</SelectItem>
-              <SelectItem value="days">Ngày</SelectItem>
-              <SelectItem value="weeks">Tuần</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-      <div className="rounded-lg border border-border bg-muted/30 p-4">
-        <div className="flex items-center gap-2 text-sm mb-3">
-          <Calendar className="h-4 w-4 text-primary" />
-          <span className="font-medium">Ví dụ thời gian</span>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          Khách hàng vào lúc <span className="text-foreground font-medium">10:00 ngày 01/01</span> sẽ tiếp tục vào lúc{' '}
-          <span className="text-foreground font-medium">10:00 ngày {String(1 + (editedNode.data.waitDays || 1)).padStart(2, '0')}/01</span>
-        </p>
-      </div>
-      <div className="space-y-2">
-        <Label>Mô tả</Label>
-        <Textarea 
-          value={editedNode.data.description || ''} 
-          onChange={(e) => updateData({ description: e.target.value })}
-          placeholder="Mô tả bước chờ..."
-          rows={2}
-        />
-      </div>
-    </div>
-  );
-
-  // ===== DECISION CONFIG =====
-  const renderDecisionConfig = () => (
-    <div className="space-y-4">
-      <div className="space-y-2">
-        <Label>Loại điều kiện</Label>
-        <Select defaultValue="response">
-          <SelectTrigger><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="response">Phản hồi từ khách hàng</SelectItem>
-            <SelectItem value="behavior">Hành vi khách hàng</SelectItem>
-            <SelectItem value="attribute">Thuộc tính khách hàng</SelectItem>
-            <SelectItem value="kyc_result">Kết quả KYC</SelectItem>
-            <SelectItem value="auth_result">Kết quả phân quyền</SelectItem>
-            <SelectItem value="time">Thời gian</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="space-y-2">
-        <Label>Điều kiện</Label>
-        <Textarea 
-          value={editedNode.data.condition || ''} 
-          onChange={(e) => updateData({ condition: e.target.value })}
-          placeholder="Ví dụ: KYC thành công, Điểm tín dụng >= 700..."
-          rows={2}
-        />
-      </div>
+      {/* Routing */}
       <div className="space-y-3">
-        <Label>Các nhánh</Label>
+        <div className="flex items-center gap-2">
+          <ArrowRightLeft className="h-4 w-4 text-muted-foreground" />
+          <Label>Điều hướng (Routing)</Label>
+        </div>
+        
         <div className="rounded-lg border border-success/50 bg-success/5 p-3">
           <div className="flex items-center gap-2 mb-2">
-            <div className="h-3 w-3 rounded-full bg-success" />
-            <span className="text-sm font-medium">Nhánh Có (Yes)</span>
+            <div className="h-2.5 w-2.5 rounded-full bg-success" />
+            <span className="text-sm font-medium">Nhánh Thành công</span>
           </div>
-          <Input placeholder="Mô tả hành động khi thỏa điều kiện" defaultValue="Thành công" />
+          <Input 
+            placeholder="Node tiếp theo khi thành công" 
+            value={editedNode.info.routing?.successNodeId || ''}
+            onChange={(e) => updateInfo({ routing: { ...editedNode.info.routing, successNodeId: e.target.value } })}
+            className="h-8 text-sm"
+          />
         </div>
+
         <div className="rounded-lg border border-danger/50 bg-danger/5 p-3">
           <div className="flex items-center gap-2 mb-2">
-            <div className="h-3 w-3 rounded-full bg-danger" />
-            <span className="text-sm font-medium">Nhánh Không (No)</span>
+            <div className="h-2.5 w-2.5 rounded-full bg-danger" />
+            <span className="text-sm font-medium">Nhánh Thất bại</span>
           </div>
-          <Input placeholder="Mô tả hành động khi không thỏa điều kiện" defaultValue="Thất bại" />
+          <Input 
+            placeholder="Node tiếp theo khi thất bại" 
+            value={editedNode.info.routing?.failureNodeId || ''}
+            onChange={(e) => updateInfo({ routing: { ...editedNode.info.routing, failureNodeId: e.target.value } })}
+            className="h-8 text-sm"
+          />
         </div>
+
+        <Button variant="outline" size="sm" className="w-full gap-1 text-xs">
+          <Plus className="h-3 w-3" />
+          Thêm nhánh tùy chỉnh
+        </Button>
       </div>
-      <div className="flex items-center justify-between rounded-lg border border-border p-3">
-        <div>
-          <p className="text-sm font-medium">Chờ phản hồi</p>
-          <p className="text-xs text-muted-foreground">Chờ tối đa 7 ngày trước khi chuyển nhánh Không</p>
-        </div>
-        <Switch defaultChecked />
+
+      <div className="rounded-lg border border-border bg-muted/20 p-3">
+        <p className="text-xs text-muted-foreground">
+          <span className="font-medium">ID Node:</span> {editedNode.id}
+        </p>
       </div>
     </div>
   );
 
-  // ===== KYC CONFIG =====
-  const renderKycConfig = () => (
-    <Tabs defaultValue="steps" className="w-full">
-      <TabsList className="w-full grid grid-cols-3">
-        <TabsTrigger value="steps">Các bước KYC</TabsTrigger>
-        <TabsTrigger value="rules">Quy tắc</TabsTrigger>
-        <TabsTrigger value="fallback">Xử lý lỗi</TabsTrigger>
-      </TabsList>
+  // ===== B. RULE TAB =====
+  const renderRuleTab = () => (
+    <div className="space-y-5">
+      {/* Audience */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Users className="h-4 w-4 text-primary" />
+          <Label className="font-semibold">Đối tượng (Audience)</Label>
+        </div>
+        <Select 
+          value={editedNode.rule.audience?.type || 'all'}
+          onValueChange={(value) => updateRule({ audience: { ...editedNode.rule.audience, type: value as any } })}
+        >
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả khách hàng trong hành trình</SelectItem>
+            <SelectItem value="segment">Theo phân khúc (Segment)</SelectItem>
+            <SelectItem value="property">Theo thuộc tính (Property)</SelectItem>
+          </SelectContent>
+        </Select>
 
-      <TabsContent value="steps" className="space-y-4 mt-4">
-        <div className="space-y-2">
-          <Label>Loại giấy tờ</Label>
+        {editedNode.rule.audience?.type === 'segment' && (
+          <Input 
+            placeholder="ID hoặc tên phân khúc..."
+            value={editedNode.rule.audience?.segmentId || ''}
+            onChange={(e) => updateRule({ audience: { ...editedNode.rule.audience!, segmentId: e.target.value } })}
+            className="h-8 text-sm"
+          />
+        )}
+        {editedNode.rule.audience?.type === 'property' && (
+          <Input 
+            placeholder="VD: age >= 18 AND status == 'active'"
+            value={editedNode.rule.audience?.propertyFilter || ''}
+            onChange={(e) => updateRule({ audience: { ...editedNode.rule.audience!, propertyFilter: e.target.value } })}
+            className="h-8 text-sm"
+          />
+        )}
+      </div>
+
+      {/* Timing */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Clock className="h-4 w-4 text-warning" />
+          <Label className="font-semibold">Thời gian (Timing)</Label>
+        </div>
+        <Select 
+          value={editedNode.rule.timing?.type || 'immediate'}
+          onValueChange={(value) => updateRule({ timing: { ...editedNode.rule.timing, type: value as any } })}
+        >
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="immediate">Ngay lập tức</SelectItem>
+            <SelectItem value="delay">Trễ X giờ/ngày</SelectItem>
+            <SelectItem value="scheduled">Theo lịch cố định</SelectItem>
+            <SelectItem value="event">Khi có sự kiện</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {editedNode.rule.timing?.type === 'delay' && (
+          <div className="flex gap-2">
+            <Input 
+              type="number" 
+              value={editedNode.rule.timing?.delayValue || 1}
+              onChange={(e) => updateRule({ timing: { ...editedNode.rule.timing!, delayValue: parseInt(e.target.value) || 1 } })}
+              min={1} className="flex-1 h-8"
+            />
+            <Select 
+              value={editedNode.rule.timing?.delayUnit || 'hours'}
+              onValueChange={(value) => updateRule({ timing: { ...editedNode.rule.timing!, delayUnit: value as any } })}
+            >
+              <SelectTrigger className="w-28 h-8"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="minutes">Phút</SelectItem>
+                <SelectItem value="hours">Giờ</SelectItem>
+                <SelectItem value="days">Ngày</SelectItem>
+                <SelectItem value="weeks">Tuần</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        {editedNode.rule.timing?.type === 'scheduled' && (
+          <div className="flex gap-2">
+            <Input 
+              type="date"
+              value={editedNode.rule.timing?.scheduledDate || ''}
+              onChange={(e) => updateRule({ timing: { ...editedNode.rule.timing!, scheduledDate: e.target.value } })}
+              className="flex-1 h-8"
+            />
+            <Input 
+              type="time"
+              value={editedNode.rule.timing?.scheduledTime || ''}
+              onChange={(e) => updateRule({ timing: { ...editedNode.rule.timing!, scheduledTime: e.target.value } })}
+              className="w-28 h-8"
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Event Trigger */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Zap className="h-4 w-4 text-accent" />
+          <Label className="font-semibold">Hành vi kích hoạt (Event)</Label>
+        </div>
+        <Select 
+          value={editedNode.rule.eventTrigger?.type || 'none'}
+          onValueChange={(value) => updateRule({ eventTrigger: { ...editedNode.rule.eventTrigger, type: value as any } })}
+        >
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">Không có (tự động)</SelectItem>
+            <SelectItem value="customer_action">Hành động khách hàng</SelectItem>
+            <SelectItem value="system_event">Sự kiện hệ thống</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {editedNode.rule.eventTrigger?.type === 'customer_action' && (
           <Select 
-            value={editedNode.data.kycConfig?.method || 'cccd'}
-            onValueChange={(value) => updateData({ 
-              kycConfig: { ...editedNode.data.kycConfig!, method: value as any } 
-            })}
+            value={editedNode.rule.eventTrigger?.event || ''}
+            onValueChange={(value) => updateRule({ eventTrigger: { ...editedNode.rule.eventTrigger!, event: value } })}
           >
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger><SelectValue placeholder="Chọn hành động..." /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="cccd">CCCD / CMND</SelectItem>
-              <SelectItem value="passport">Hộ chiếu</SelectItem>
-              <SelectItem value="driver_license">Giấy phép lái xe</SelectItem>
+              <SelectItem value="click_link">Click link trong email/SMS</SelectItem>
+              <SelectItem value="open_app">Mở App</SelectItem>
+              <SelectItem value="deposit">Nạp tiền</SelectItem>
+              <SelectItem value="register">Đăng ký dịch vụ mới</SelectItem>
+              <SelectItem value="complete_kyc">Hoàn thành KYC</SelectItem>
+              <SelectItem value="sign_contract">Ký hợp đồng</SelectItem>
             </SelectContent>
           </Select>
+        )}
+
+        {editedNode.rule.eventTrigger?.type === 'system_event' && (
+          <Select 
+            value={editedNode.rule.eventTrigger?.event || ''}
+            onValueChange={(value) => updateRule({ eventTrigger: { ...editedNode.rule.eventTrigger!, event: value } })}
+          >
+            <SelectTrigger><SelectValue placeholder="Chọn sự kiện..." /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="status_change">Thay đổi trạng thái</SelectItem>
+              <SelectItem value="score_update">Cập nhật điểm tín dụng</SelectItem>
+              <SelectItem value="tier_change">Thay đổi hạng mức</SelectItem>
+              <SelectItem value="contract_expired">Hợp đồng hết hạn</SelectItem>
+            </SelectContent>
+          </Select>
+        )}
+      </div>
+    </div>
+  );
+
+  // ===== C. EXECUTION TAB =====
+  const renderExecutionTab = () => {
+    if (node.type === 'interact') return renderInteractExecution();
+    if (node.type === 'authen') return renderAuthenExecution();
+    if (node.type === 'author') return renderAuthorExecution();
+    return null;
+  };
+
+  // --- Interact Execution ---
+  const renderInteractExecution = () => (
+    <div className="space-y-5">
+      {/* Task Execution */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Play className="h-4 w-4 text-primary" />
+            <Label className="font-semibold">Task thực thi</Label>
+          </div>
+          <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => {
+            const tasks = editedNode.execution.tasks || [];
+            updateExecution({ tasks: [...tasks, { id: `t-${Date.now()}`, type: 'email', label: 'Gửi Email mới' }] });
+          }}>
+            <Plus className="h-3 w-3" />
+            Thêm
+          </Button>
         </div>
 
+        {(editedNode.execution.tasks || []).map((task, idx) => {
+          const taskIcons: Record<string, any> = { email: Mail, sms: MessageSquare, notification: Bell, zalo: MessageSquare, call: Phone, create_task: FileText };
+          const TaskIcon = taskIcons[task.type] || Mail;
+          return (
+            <div key={task.id} className="rounded-lg border border-border p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <TaskIcon className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-medium">Task {idx + 1}</span>
+                </div>
+                <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-danger"
+                  onClick={() => {
+                    const tasks = (editedNode.execution.tasks || []).filter(t => t.id !== task.id);
+                    updateExecution({ tasks });
+                  }}>
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              </div>
+              <Select value={task.type} onValueChange={(value) => {
+                const tasks = (editedNode.execution.tasks || []).map(t => t.id === task.id ? { ...t, type: value as any } : t);
+                updateExecution({ tasks });
+              }}>
+                <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="email">Gửi Email</SelectItem>
+                  <SelectItem value="sms">Gửi SMS</SelectItem>
+                  <SelectItem value="notification">Push Notification</SelectItem>
+                  <SelectItem value="zalo">Gửi Zalo</SelectItem>
+                  <SelectItem value="call">Gọi điện</SelectItem>
+                  <SelectItem value="create_task">Tạo Task cho Sales</SelectItem>
+                </SelectContent>
+              </Select>
+              <Input 
+                placeholder="Mô tả nội dung..."
+                value={task.label || ''}
+                onChange={(e) => {
+                  const tasks = (editedNode.execution.tasks || []).map(t => t.id === task.id ? { ...t, label: e.target.value } : t);
+                  updateExecution({ tasks });
+                }}
+                className="h-8 text-sm"
+              />
+            </div>
+          );
+        })}
+
+        {(!editedNode.execution.tasks || editedNode.execution.tasks.length === 0) && (
+          <div className="rounded-lg border border-dashed border-border p-4 text-center text-muted-foreground">
+            <Mail className="h-6 w-6 mx-auto mb-1 opacity-50" />
+            <p className="text-xs">Chưa có task nào. Nhấn "Thêm" để tạo.</p>
+          </div>
+        )}
+      </div>
+
+      {/* Call Flow */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Workflow className="h-4 w-4 text-violet-500" />
+          <Label className="font-semibold">Call Flow (Sub-flow)</Label>
+        </div>
+        <div className="flex items-center justify-between rounded-lg border border-border p-3">
+          <div>
+            <p className="text-sm font-medium">Gọi luồng con</p>
+            <p className="text-xs text-muted-foreground">Tái sử dụng quy trình chuẩn</p>
+          </div>
+          <Switch 
+            checked={editedNode.execution.callFlow?.enabled ?? false}
+            onCheckedChange={(checked) => updateExecution({ callFlow: { ...editedNode.execution.callFlow, enabled: checked } })}
+          />
+        </div>
+        {editedNode.execution.callFlow?.enabled && (
+          <Select value={editedNode.execution.callFlow?.flowId || ''} onValueChange={(value) => updateExecution({ callFlow: { ...editedNode.execution.callFlow!, flowId: value, flowName: value } })}>
+            <SelectTrigger className="h-8"><SelectValue placeholder="Chọn luồng con..." /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="flow-kyc">Luồng KYC chuẩn</SelectItem>
+              <SelectItem value="flow-onboarding">Luồng Onboarding</SelectItem>
+              <SelectItem value="flow-card-opening">Luồng mở thẻ</SelectItem>
+            </SelectContent>
+          </Select>
+        )}
+      </div>
+
+      {/* API/Webhook */}
+      {renderApiWebhookSection()}
+    </div>
+  );
+
+  // --- Authen (KYC) Execution ---
+  const renderAuthenExecution = () => {
+    const kycConfig = editedNode.execution.kycConfig || {
+      method: 'cccd' as const, steps: ['id_front' as const, 'id_back' as const, 'face_matching' as const, 'ocr_verify' as const, 'db_check' as const],
+      maxRetries: 3, manualReviewOnFail: true, failAction: 'create_task' as const
+    };
+
+    return (
+      <div className="space-y-5">
+        {/* KYC Steps */}
         <div className="space-y-3">
-          <Label>Các bước xác thực</Label>
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4 text-cyan-500" />
+            <Label className="font-semibold">Các bước KYC</Label>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs">Loại giấy tờ</Label>
+            <Select value={kycConfig.method} onValueChange={(value) => updateExecution({ kycConfig: { ...kycConfig, method: value as any } })}>
+              <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="cccd">CCCD / CMND</SelectItem>
+                <SelectItem value="passport">Hộ chiếu</SelectItem>
+                <SelectItem value="driver_license">Giấy phép lái xe</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           {[
-            { id: 'id_front', label: 'Chụp mặt trước giấy tờ', icon: CreditCard },
-            { id: 'id_back', label: 'Chụp mặt sau giấy tờ', icon: CreditCard },
-            { id: 'face_matching', label: 'Quét khuôn mặt (Face Matching)', icon: ScanFace },
-            { id: 'ocr_verify', label: 'Kiểm tra OCR tự động', icon: FileText },
-            { id: 'db_check', label: 'Đối chiếu CSDL quốc gia', icon: ShieldCheck },
+            { id: 'id_front' as const, label: 'Chụp mặt trước giấy tờ', icon: CreditCard },
+            { id: 'id_back' as const, label: 'Chụp mặt sau giấy tờ', icon: CreditCard },
+            { id: 'face_matching' as const, label: 'Quét khuôn mặt (Face Matching)', icon: ScanFace },
+            { id: 'ocr_verify' as const, label: 'Kiểm tra OCR tự động', icon: FileText },
+            { id: 'db_check' as const, label: 'Đối chiếu CSDL quốc gia', icon: ShieldCheck },
           ].map((step) => {
             const StepIcon = step.icon;
-            const isChecked = editedNode.data.kycConfig?.steps?.includes(step.id as any) ?? true;
+            const isChecked = kycConfig.steps?.includes(step.id) ?? true;
             return (
-              <div key={step.id} className="flex items-center gap-3 rounded-lg border border-border p-3">
+              <div key={step.id} className="flex items-center gap-3 rounded-lg border border-border p-2.5">
                 <Checkbox 
-                  id={step.id} 
-                  checked={isChecked}
+                  id={step.id} checked={isChecked}
                   onCheckedChange={(checked) => {
-                    const currentSteps = editedNode.data.kycConfig?.steps || ['id_front', 'id_back', 'face_matching', 'ocr_verify', 'db_check'];
                     const newSteps = checked 
-                      ? [...currentSteps, step.id as any]
-                      : currentSteps.filter(s => s !== step.id);
-                    updateData({ 
-                      kycConfig: { ...editedNode.data.kycConfig!, steps: newSteps } 
-                    });
+                      ? [...(kycConfig.steps || []), step.id]
+                      : (kycConfig.steps || []).filter(s => s !== step.id);
+                    updateExecution({ kycConfig: { ...kycConfig, steps: newSteps } });
                   }}
                 />
                 <StepIcon className="h-4 w-4 text-cyan-500" />
-                <label htmlFor={step.id} className="text-sm font-medium cursor-pointer flex-1">
-                  {step.label}
-                </label>
+                <label htmlFor={step.id} className="text-sm cursor-pointer flex-1">{step.label}</label>
               </div>
             );
           })}
         </div>
-      </TabsContent>
 
-      <TabsContent value="rules" className="space-y-4 mt-4">
-        <div className="space-y-2">
-          <Label>Số lần thử lại tối đa</Label>
-          <Input 
-            type="number" 
-            value={editedNode.data.kycConfig?.maxRetries || 3} 
-            onChange={(e) => updateData({ 
-              kycConfig: { ...editedNode.data.kycConfig!, maxRetries: parseInt(e.target.value) || 3 } 
-            })}
-            min={1} max={10}
-          />
-        </div>
-
-        <div className="flex items-center justify-between rounded-lg border border-border p-3">
-          <div>
-            <p className="text-sm font-medium">Duyệt thủ công khi thất bại</p>
-            <p className="text-xs text-muted-foreground">Chuyển hồ sơ cho nhân viên xem xét</p>
-          </div>
-          <Switch 
-            checked={editedNode.data.kycConfig?.manualReviewOnFail ?? true}
-            onCheckedChange={(checked) => updateData({ 
-              kycConfig: { ...editedNode.data.kycConfig!, manualReviewOnFail: checked } 
-            })}
-          />
-        </div>
-
-        <div className="rounded-lg border border-border bg-muted/30 p-4">
-          <div className="flex items-center gap-2 text-sm mb-2">
-            <ShieldCheck className="h-4 w-4 text-cyan-500" />
-            <span className="font-medium">Tiêu chuẩn bảo mật</span>
-          </div>
-          <div className="space-y-1 text-xs text-muted-foreground">
-            <p>• Dữ liệu được mã hóa end-to-end</p>
-            <p>• Tuân thủ quy định bảo vệ dữ liệu cá nhân</p>
-            <p>• Ảnh giấy tờ tự động xóa sau 24h xử lý</p>
-          </div>
-        </div>
-      </TabsContent>
-
-      <TabsContent value="fallback" className="space-y-4 mt-4">
-        <div className="space-y-2">
-          <Label>Hành động khi KYC thất bại</Label>
-          <Select 
-            value={editedNode.data.kycConfig?.failAction || 'create_task'}
-            onValueChange={(value) => updateData({ 
-              kycConfig: { ...editedNode.data.kycConfig!, failAction: value as any } 
-            })}
-          >
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="notify_sms">Gửi SMS thông báo lỗi</SelectItem>
-              <SelectItem value="notify_email">Gửi Email hướng dẫn</SelectItem>
-              <SelectItem value="create_task">Tạo nhiệm vụ cho Sales Team</SelectItem>
-              <SelectItem value="block">Chặn & yêu cầu liên hệ CSKH</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="rounded-lg border border-warning/50 bg-warning/5 p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <AlertTriangle className="h-4 w-4 text-warning" />
-            <span className="text-sm font-medium">Kịch bản xử lý thất bại</span>
-          </div>
-          <div className="space-y-2 text-sm text-muted-foreground">
-            <div className="flex items-start gap-2">
-              <span className="text-warning font-medium">1.</span>
-              <span>Gửi SMS: "Xác thực chưa hoàn tất. Vui lòng thử lại hoặc liên hệ hotline."</span>
+        {/* KYC Rules */}
+        <div className="space-y-3">
+          <Label className="text-xs font-semibold">Quy tắc xử lý</Label>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs">Số lần thử lại tối đa</Label>
+              <Input type="number" value={kycConfig.maxRetries} onChange={(e) => updateExecution({ kycConfig: { ...kycConfig, maxRetries: parseInt(e.target.value) || 3 } })} min={1} max={10} className="w-20 h-7 text-xs" />
             </div>
-            <div className="flex items-start gap-2">
-              <span className="text-warning font-medium">2.</span>
-              <span>Tạo Task cho Sales Team gọi hỗ trợ khách hàng</span>
-            </div>
-            <div className="flex items-start gap-2">
-              <span className="text-warning font-medium">3.</span>
-              <span>Chờ duyệt thủ công (nếu bật)</span>
+            <div className="flex items-center justify-between rounded-lg border border-border p-2.5">
+              <span className="text-sm">Duyệt thủ công khi thất bại</span>
+              <Switch checked={kycConfig.manualReviewOnFail} onCheckedChange={(checked) => updateExecution({ kycConfig: { ...kycConfig, manualReviewOnFail: checked } })} />
             </div>
           </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs">Hành động khi thất bại</Label>
+            <Select value={kycConfig.failAction || 'create_task'} onValueChange={(value) => updateExecution({ kycConfig: { ...kycConfig, failAction: value as any } })}>
+              <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="notify_sms">Gửi SMS thông báo lỗi</SelectItem>
+                <SelectItem value="notify_email">Gửi Email hướng dẫn</SelectItem>
+                <SelectItem value="create_task">Tạo Task cho Sales Team</SelectItem>
+                <SelectItem value="block">Chặn & yêu cầu liên hệ CSKH</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
-        <div className="space-y-2">
-          <Label>Mô tả</Label>
-          <Textarea 
-            value={editedNode.data.description || ''} 
-            onChange={(e) => updateData({ description: e.target.value })}
-            placeholder="Ghi chú thêm cho bước KYC..."
-            rows={2}
-          />
-        </div>
-      </TabsContent>
-    </Tabs>
-  );
+        {/* Call Flow & API */}
+        {renderCallFlowSection()}
+        {renderApiWebhookSection()}
+      </div>
+    );
+  };
 
-  // ===== AUTHORIZATION CONFIG =====
-  const renderAuthorizationConfig = () => (
-    <Tabs defaultValue="check" className="w-full">
-      <TabsList className="w-full grid grid-cols-3">
-        <TabsTrigger value="check">Kiểm tra</TabsTrigger>
-        <TabsTrigger value="tiers">Phân hạng</TabsTrigger>
-        <TabsTrigger value="action">Hành động</TabsTrigger>
-      </TabsList>
+  // --- Author (Authorization) Execution ---
+  const renderAuthorExecution = () => {
+    const authConfig = editedNode.execution.authorizationConfig || {
+      checkType: 'credit_score' as const, rules: [], defaultTier: 'standard'
+    };
+    const esignConfig = editedNode.execution.esignConfig;
 
-      <TabsContent value="check" className="space-y-4 mt-4">
-        <div className="space-y-2">
-          <Label>Loại kiểm tra</Label>
-          <Select 
-            value={editedNode.data.authorizationConfig?.checkType || 'credit_score'}
-            onValueChange={(value) => updateData({ 
-              authorizationConfig: { ...editedNode.data.authorizationConfig!, checkType: value as any } 
-            })}
-          >
-            <SelectTrigger><SelectValue /></SelectTrigger>
+    return (
+      <div className="space-y-5">
+        {/* Check Type */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <KeyRound className="h-4 w-4 text-amber-500" />
+            <Label className="font-semibold">Kiểm tra & Phân quyền</Label>
+          </div>
+
+          <Select value={authConfig.checkType} onValueChange={(value) => updateExecution({ authorizationConfig: { ...authConfig, checkType: value as any } })}>
+            <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="credit_score">Điểm tín dụng (CIC)</SelectItem>
               <SelectItem value="transaction_history">Lịch sử giao dịch</SelectItem>
@@ -562,344 +510,179 @@ export function NodeConfigPanel({ node, onClose, onSave, onDelete }: NodeConfigP
               <SelectItem value="manual_review">Duyệt thủ công</SelectItem>
             </SelectContent>
           </Select>
-        </div>
 
-        <div className="rounded-lg border border-border bg-muted/30 p-4">
-          <div className="flex items-center gap-2 text-sm mb-3">
-            <CreditCard className="h-4 w-4 text-amber-500" />
-            <span className="font-medium">Nguồn dữ liệu kiểm tra</span>
+          <div className="rounded-lg border border-border bg-muted/30 p-3">
+            <span className="text-xs font-medium">Nguồn dữ liệu</span>
+            {[
+              { label: 'Trung tâm thông tin tín dụng (CIC)', checked: true },
+              { label: 'Lịch sử giao dịch nội bộ', checked: true },
+              { label: 'Dữ liệu tài sản đảm bảo', checked: false },
+            ].map((src, i) => (
+              <div key={i} className="flex items-center gap-2 py-1">
+                <Checkbox id={`src-${i}`} defaultChecked={src.checked} />
+                <label htmlFor={`src-${i}`} className="text-xs cursor-pointer">{src.label}</label>
+              </div>
+            ))}
           </div>
-          {[
-            { label: 'Trung tâm thông tin tín dụng (CIC)', checked: true },
-            { label: 'Lịch sử giao dịch nội bộ', checked: true },
-            { label: 'Dữ liệu tài sản đảm bảo', checked: false },
-            { label: 'Thông tin thu nhập', checked: false },
-          ].map((source, idx) => (
-            <div key={idx} className="flex items-center gap-2 py-1.5">
-              <Checkbox id={`src-${idx}`} defaultChecked={source.checked} />
-              <label htmlFor={`src-${idx}`} className="text-sm cursor-pointer">{source.label}</label>
-            </div>
-          ))}
         </div>
 
-        <div className="space-y-2">
-          <Label>Mô tả quy trình</Label>
-          <Textarea 
-            value={editedNode.data.description || ''} 
-            onChange={(e) => updateData({ description: e.target.value })}
-            placeholder="Mô tả quy trình kiểm tra và phân quyền..."
-            rows={3}
-          />
-        </div>
-      </TabsContent>
-
-      <TabsContent value="tiers" className="space-y-4 mt-4">
+        {/* Tiers */}
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <Label>Các hạng mức cấp phát</Label>
-          </div>
-
+          <Label className="text-xs font-semibold">Các hạng mức cấp phát</Label>
           {[
-            { tier: 'Gói Standard', limit: '20 triệu', condition: 'Điểm CIC >= 600', color: 'border-blue-500/50 bg-blue-500/5' },
-            { tier: 'Gói Gold', limit: '50 triệu', condition: 'Điểm CIC >= 700', color: 'border-amber-500/50 bg-amber-500/5' },
-            { tier: 'Gói VIP', limit: '200 triệu', condition: 'Điểm CIC >= 800', color: 'border-violet-500/50 bg-violet-500/5' },
-          ].map((rule, idx) => (
-            <div key={idx} className={cn('rounded-lg border p-3 space-y-2', rule.color)}>
+            { tier: 'Standard', limit: '20 triệu', condition: 'CIC >= 600', color: 'border-blue-500/50 bg-blue-500/5' },
+            { tier: 'Gold', limit: '50 triệu', condition: 'CIC >= 700', color: 'border-amber-500/50 bg-amber-500/5' },
+            { tier: 'VIP', limit: '200 triệu', condition: 'CIC >= 800', color: 'border-violet-500/50 bg-violet-500/5' },
+          ].map((rule, i) => (
+            <div key={i} className={cn('rounded-lg border p-2.5 space-y-1', rule.color)}>
               <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold">{rule.tier}</span>
-                <Badge variant="outline" className="text-xs">{rule.limit}</Badge>
+                <span className="text-xs font-semibold">{rule.tier}</span>
+                <Badge variant="outline" className="text-[10px] h-5">{rule.limit}</Badge>
               </div>
-              <Input defaultValue={rule.condition} className="text-sm h-8" />
+              <Input defaultValue={rule.condition} className="text-xs h-7" />
             </div>
           ))}
-
-          <Button variant="outline" size="sm" className="w-full gap-1">
-            <Plus className="h-3 w-3" />
-            Thêm hạng mức
-          </Button>
         </div>
 
-        <div className="space-y-2">
-          <Label>Hạng mức mặc định</Label>
-          <Select defaultValue="standard">
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="standard">Gói Standard (20 triệu)</SelectItem>
-              <SelectItem value="gold">Gói Gold (50 triệu)</SelectItem>
-              <SelectItem value="vip">Gói VIP (200 triệu)</SelectItem>
-              <SelectItem value="none">Không cấp</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </TabsContent>
-
-      <TabsContent value="action" className="space-y-4 mt-4">
-        <div className="rounded-lg border border-success/50 bg-success/5 p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <CheckCircle2 className="h-4 w-4 text-success" />
-            <span className="text-sm font-medium">Khi phân quyền thành công</span>
-          </div>
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Checkbox id="auth-noti" defaultChecked />
-              <label htmlFor="auth-noti" className="text-sm cursor-pointer">Gửi Notification trên App</label>
-            </div>
-            <div className="flex items-center gap-2">
-              <Checkbox id="auth-email" defaultChecked />
-              <label htmlFor="auth-email" className="text-sm cursor-pointer">Gửi Email thông báo hạn mức</label>
-            </div>
-            <div className="flex items-center gap-2">
-              <Checkbox id="auth-sms" />
-              <label htmlFor="auth-sms" className="text-sm cursor-pointer">Gửi SMS xác nhận</label>
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-lg border border-danger/50 bg-danger/5 p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <AlertTriangle className="h-4 w-4 text-danger" />
-            <span className="text-sm font-medium">Khi không đủ điều kiện</span>
-          </div>
-          <Select defaultValue="lower_tier">
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="lower_tier">Cấp hạng mức thấp hơn</SelectItem>
-              <SelectItem value="pending">Chờ xem xét thủ công</SelectItem>
-              <SelectItem value="reject">Từ chối & thông báo</SelectItem>
-              <SelectItem value="task">Tạo Task cho nhân viên</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </TabsContent>
-    </Tabs>
-  );
-
-  // ===== ESIGN CONFIG =====
-  const renderEsignConfig = () => (
-    <Tabs defaultValue="method" className="w-full">
-      <TabsList className="w-full grid grid-cols-3">
-        <TabsTrigger value="method">Phương thức</TabsTrigger>
-        <TabsTrigger value="document">Tài liệu</TabsTrigger>
-        <TabsTrigger value="settings">Cài đặt</TabsTrigger>
-      </TabsList>
-
-      <TabsContent value="method" className="space-y-4 mt-4">
-        <div className="space-y-2">
-          <Label>Phương thức xác thực ký</Label>
-          <Select 
-            value={editedNode.data.esignConfig?.method || 'otp'}
-            onValueChange={(value) => updateData({ 
-              esignConfig: { ...editedNode.data.esignConfig!, method: value as any } 
-            })}
-          >
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="otp">OTP qua SMS/Email</SelectItem>
-              <SelectItem value="biometric">Sinh trắc học (Vân tay/Khuôn mặt)</SelectItem>
-              <SelectItem value="digital_signature">Chữ ký số (USB Token / HSM)</SelectItem>
-              <SelectItem value="face_id">Face ID xác thực</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
+        {/* eSign sub-section */}
         <div className="space-y-3">
-          <Label>Các bước ký điện tử</Label>
-          {[
-            { icon: FileText, label: 'Hiển thị hợp đồng để đọc', desc: 'KH đọc và xem lại nội dung' },
-            { icon: Fingerprint, label: 'Xác thực danh tính', desc: 'OTP / Sinh trắc / Chữ ký số' },
-            { icon: PenTool, label: 'Ký xác nhận', desc: 'KH xác nhận đồng ý ký hợp đồng' },
-            { icon: CheckCircle2, label: 'Lưu trữ & gửi bản sao', desc: 'Lưu hợp đồng đã ký' },
-          ].map((step, idx) => {
-            const StepIcon = step.icon;
-            return (
-              <div key={idx} className="flex items-center gap-3 rounded-lg border border-border p-3">
-                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-violet-500/10 text-violet-500">
-                  <StepIcon className="h-4 w-4" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium">{step.label}</p>
-                  <p className="text-xs text-muted-foreground">{step.desc}</p>
-                </div>
-                <span className="text-xs text-muted-foreground font-medium">B{idx + 1}</span>
-              </div>
-            );
-          })}
-        </div>
-      </TabsContent>
-
-      <TabsContent value="document" className="space-y-4 mt-4">
-        <div className="space-y-2">
-          <Label>Loại tài liệu</Label>
-          <Select 
-            value={editedNode.data.esignConfig?.documentType || 'contract'}
-            onValueChange={(value) => updateData({ 
-              esignConfig: { ...editedNode.data.esignConfig!, documentType: value as any } 
-            })}
-          >
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="contract">Hợp đồng mở tài khoản</SelectItem>
-              <SelectItem value="agreement">Thỏa thuận sử dụng dịch vụ</SelectItem>
-              <SelectItem value="consent">Đồng ý điều khoản & điều kiện</SelectItem>
-              <SelectItem value="power_of_attorney">Giấy ủy quyền</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label>Mẫu hợp đồng</Label>
-          <Select defaultValue="margin_contract">
-            <SelectTrigger><SelectValue placeholder="Chọn mẫu hợp đồng" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="margin_contract">HĐ cấp hạn mức Margin</SelectItem>
-              <SelectItem value="account_opening">HĐ mở tài khoản giao dịch</SelectItem>
-              <SelectItem value="vip_service">HĐ dịch vụ VIP</SelectItem>
-              <SelectItem value="custom">Tùy chỉnh</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="flex items-center justify-between rounded-lg border border-border p-3">
-          <div>
-            <p className="text-sm font-medium">Yêu cầu người làm chứng</p>
-            <p className="text-xs text-muted-foreground">Cần nhân viên xác nhận</p>
+          <div className="flex items-center gap-2">
+            <PenTool className="h-4 w-4 text-violet-500" />
+            <Label className="font-semibold">Ký điện tử (eSign)</Label>
           </div>
-          <Switch 
-            checked={editedNode.data.esignConfig?.requireWitness ?? false}
-            onCheckedChange={(checked) => updateData({ 
-              esignConfig: { ...editedNode.data.esignConfig!, requireWitness: checked } 
-            })}
-          />
-        </div>
-      </TabsContent>
 
-      <TabsContent value="settings" className="space-y-4 mt-4">
-        <div className="space-y-2">
-          <Label>Thời hạn ký (giờ)</Label>
-          <Input 
-            type="number" 
-            value={editedNode.data.esignConfig?.expiryHours || 24}
-            onChange={(e) => updateData({ 
-              esignConfig: { ...editedNode.data.esignConfig!, expiryHours: parseInt(e.target.value) || 24 } 
-            })}
-            min={1} max={168}
-          />
-          <p className="text-xs text-muted-foreground">Link ký sẽ hết hạn sau thời gian này</p>
-        </div>
-
-        <div className="space-y-2">
-          <Label>Phương thức dự phòng</Label>
-          <Select 
-            value={editedNode.data.esignConfig?.fallbackMethod || 'otp'}
-            onValueChange={(value) => updateData({ 
-              esignConfig: { ...editedNode.data.esignConfig!, fallbackMethod: value as any } 
-            })}
-          >
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="otp">Chuyển sang OTP</SelectItem>
-              <SelectItem value="manual">Ký giấy tại quầy</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="flex items-center justify-between rounded-lg border border-border p-3">
-          <div>
-            <p className="text-sm font-medium">Lưu trữ dài hạn</p>
-            <p className="text-xs text-muted-foreground">Lưu hợp đồng trên hệ thống 10 năm</p>
+          <div className="flex items-center justify-between rounded-lg border border-border p-2.5">
+            <span className="text-sm">Bật ký điện tử</span>
+            <Switch 
+              checked={!!esignConfig}
+              onCheckedChange={(checked) => {
+                if (checked) {
+                  updateExecution({ esignConfig: { method: 'otp', documentType: 'contract', requireWitness: false, expiryHours: 24 } });
+                } else {
+                  updateExecution({ esignConfig: undefined });
+                }
+              }}
+            />
           </div>
-          <Switch defaultChecked />
+
+          {esignConfig && (
+            <>
+              <Select value={esignConfig.method} onValueChange={(value) => updateExecution({ esignConfig: { ...esignConfig, method: value as any } })}>
+                <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="otp">OTP qua SMS/Email</SelectItem>
+                  <SelectItem value="biometric">Sinh trắc học</SelectItem>
+                  <SelectItem value="digital_signature">Chữ ký số</SelectItem>
+                  <SelectItem value="face_id">Face ID</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={esignConfig.documentType} onValueChange={(value) => updateExecution({ esignConfig: { ...esignConfig, documentType: value as any } })}>
+                <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="contract">Hợp đồng</SelectItem>
+                  <SelectItem value="agreement">Thỏa thuận dịch vụ</SelectItem>
+                  <SelectItem value="consent">Đồng ý điều khoản</SelectItem>
+                  <SelectItem value="power_of_attorney">Giấy ủy quyền</SelectItem>
+                </SelectContent>
+              </Select>
+            </>
+          )}
         </div>
 
-        <div className="flex items-center justify-between rounded-lg border border-border p-3">
-          <div>
-            <p className="text-sm font-medium">Gửi bản sao cho KH</p>
-            <p className="text-xs text-muted-foreground">Email bản PDF sau khi ký thành công</p>
-          </div>
-          <Switch defaultChecked />
-        </div>
-
-        <div className="rounded-lg border border-border bg-muted/30 p-4">
-          <div className="flex items-center gap-2 text-sm mb-2">
-            <ShieldCheck className="h-4 w-4 text-violet-500" />
-            <span className="font-medium">Ràng buộc pháp lý</span>
-          </div>
-          <div className="space-y-1 text-xs text-muted-foreground">
-            <p>• Chữ ký điện tử có giá trị pháp lý theo Luật Giao dịch điện tử</p>
-            <p>• Xác thực danh tính trước khi ký đảm bảo tính hợp pháp</p>
-            <p>• Dấu thời gian (timestamp) được ghi nhận tự động</p>
-          </div>
-        </div>
-      </TabsContent>
-    </Tabs>
-  );
-
-  // ===== END CONFIG =====
-  const renderEndConfig = () => (
-    <div className="space-y-4">
-      <div className="space-y-2">
-        <Label>Loại kết thúc</Label>
-        <Select defaultValue="complete">
-          <SelectTrigger><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="complete">Hoàn thành hành trình</SelectItem>
-            <SelectItem value="convert">Chuyển đổi thành công</SelectItem>
-            <SelectItem value="exit">Thoát hành trình</SelectItem>
-            <SelectItem value="transfer">Chuyển sang hành trình khác</SelectItem>
-          </SelectContent>
-        </Select>
+        {/* Call Flow & API */}
+        {renderCallFlowSection()}
+        {renderApiWebhookSection()}
       </div>
-      <div className="space-y-2">
-        <Label>Mô tả</Label>
-        <Textarea 
-          value={editedNode.data.description || ''} 
-          onChange={(e) => updateData({ description: e.target.value })}
-          placeholder="Mô tả điểm kết thúc..."
-          rows={2}
+    );
+  };
+
+  // Shared: Call Flow section
+  const renderCallFlowSection = () => (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <Workflow className="h-4 w-4 text-violet-500" />
+        <Label className="font-semibold">Call Flow (Sub-flow)</Label>
+      </div>
+      <div className="flex items-center justify-between rounded-lg border border-border p-2.5">
+        <div>
+          <p className="text-sm">Gọi luồng con</p>
+          <p className="text-xs text-muted-foreground">Tái sử dụng quy trình chuẩn</p>
+        </div>
+        <Switch 
+          checked={editedNode.execution.callFlow?.enabled ?? false}
+          onCheckedChange={(checked) => updateExecution({ callFlow: { ...editedNode.execution.callFlow, enabled: checked } })}
         />
       </div>
-      <div className="flex items-center justify-between rounded-lg border border-border p-3">
-        <div>
-          <p className="text-sm font-medium">Ghi nhận hoàn thành</p>
-          <p className="text-xs text-muted-foreground">Đánh dấu khách hàng đã hoàn thành hành trình</p>
-        </div>
-        <Switch defaultChecked />
-      </div>
-      <div className="flex items-center justify-between rounded-lg border border-border p-3">
-        <div>
-          <p className="text-sm font-medium">Cho phép tham gia lại</p>
-          <p className="text-xs text-muted-foreground">Khách hàng có thể tham gia lại sau 30 ngày</p>
-        </div>
-        <Switch />
-      </div>
+      {editedNode.execution.callFlow?.enabled && (
+        <Select value={editedNode.execution.callFlow?.flowId || ''} onValueChange={(value) => updateExecution({ callFlow: { ...editedNode.execution.callFlow!, flowId: value, flowName: value } })}>
+          <SelectTrigger className="h-8"><SelectValue placeholder="Chọn luồng..." /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="flow-kyc">Luồng KYC chuẩn</SelectItem>
+            <SelectItem value="flow-onboarding">Luồng Onboarding</SelectItem>
+            <SelectItem value="flow-card-opening">Luồng mở thẻ</SelectItem>
+          </SelectContent>
+        </Select>
+      )}
     </div>
   );
 
-  const renderConfig = () => {
-    switch (node.type) {
-      case 'start': return renderStartConfig();
-      case 'touchpoint': return renderTouchpointConfig();
-      case 'wait': return renderWaitConfig();
-      case 'decision': return renderDecisionConfig();
-      case 'kyc': return renderKycConfig();
-      case 'authorization': return renderAuthorizationConfig();
-      case 'esign': return renderEsignConfig();
-      case 'end': return renderEndConfig();
-      default: return null;
-    }
-  };
+  // Shared: API/Webhook section
+  const renderApiWebhookSection = () => (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <Globe className="h-4 w-4 text-emerald-500" />
+        <Label className="font-semibold">API / Webhook</Label>
+      </div>
+      <div className="flex items-center justify-between rounded-lg border border-border p-2.5">
+        <div>
+          <p className="text-sm">Kết nối hệ thống bên thứ 3</p>
+          <p className="text-xs text-muted-foreground">Gọi API hoặc nhận webhook</p>
+        </div>
+        <Switch 
+          checked={editedNode.execution.apiWebhook?.enabled ?? false}
+          onCheckedChange={(checked) => updateExecution({ apiWebhook: { ...editedNode.execution.apiWebhook, enabled: checked } })}
+        />
+      </div>
+      {editedNode.execution.apiWebhook?.enabled && (
+        <div className="space-y-2">
+          <div className="flex gap-2">
+            <Select value={editedNode.execution.apiWebhook?.method || 'POST'} onValueChange={(value) => updateExecution({ apiWebhook: { ...editedNode.execution.apiWebhook!, method: value as any } })}>
+              <SelectTrigger className="w-24 h-8"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="GET">GET</SelectItem>
+                <SelectItem value="POST">POST</SelectItem>
+                <SelectItem value="PUT">PUT</SelectItem>
+              </SelectContent>
+            </Select>
+            <Input 
+              placeholder="https://api.example.com/..."
+              value={editedNode.execution.apiWebhook?.url || ''}
+              onChange={(e) => updateExecution({ apiWebhook: { ...editedNode.execution.apiWebhook!, url: e.target.value } })}
+              className="flex-1 h-8 text-xs"
+            />
+          </div>
+          <Input 
+            placeholder="Mô tả mục đích API..."
+            value={editedNode.execution.apiWebhook?.description || ''}
+            onChange={(e) => updateExecution({ apiWebhook: { ...editedNode.execution.apiWebhook!, description: e.target.value } })}
+            className="h-8 text-xs"
+          />
+        </div>
+      )}
+    </div>
+  );
 
   return (
-    <div className="w-80 border-l border-border bg-card flex flex-col h-full">
+    <div className="w-[360px] border-l border-border bg-card flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <div className="flex items-center gap-2">
-          <div className={cn('p-1.5 rounded-lg bg-muted', config.color)}>
-            <Icon className="h-4 w-4" />
+          <div className={cn('p-1.5 rounded-lg bg-muted')}>
+            <Icon className={cn("h-4 w-4", config.color)} />
           </div>
           <div>
             <h3 className="font-medium text-sm">{config.label}</h3>
-            <p className="text-xs text-muted-foreground">Cấu hình chi tiết</p>
+            <p className="text-xs text-muted-foreground">Cấu hình 3 phần</p>
           </div>
         </div>
         <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8">
@@ -907,19 +690,29 @@ export function NodeConfigPanel({ node, onClose, onSave, onDelete }: NodeConfigP
         </Button>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto p-4">
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label>Tên bước</Label>
-            <Input 
-              value={editedNode.data.label} 
-              onChange={(e) => updateData({ label: e.target.value })}
-            />
-          </div>
-          {renderConfig()}
+      {/* 3-Part Tabs: INFO | RULE | EXECUTION */}
+      <Tabs defaultValue="info" className="flex-1 flex flex-col overflow-hidden">
+        <TabsList className="w-full grid grid-cols-3 mx-4 mt-3" style={{ width: 'calc(100% - 2rem)' }}>
+          <TabsTrigger value="info" className="gap-1 text-xs">
+            <Info className="h-3 w-3" />
+            Info
+          </TabsTrigger>
+          <TabsTrigger value="rule" className="gap-1 text-xs">
+            <BookOpen className="h-3 w-3" />
+            Rule
+          </TabsTrigger>
+          <TabsTrigger value="execution" className="gap-1 text-xs">
+            <Play className="h-3 w-3" />
+            Thực thi
+          </TabsTrigger>
+        </TabsList>
+
+        <div className="flex-1 overflow-y-auto p-4">
+          <TabsContent value="info" className="mt-0">{renderInfoTab()}</TabsContent>
+          <TabsContent value="rule" className="mt-0">{renderRuleTab()}</TabsContent>
+          <TabsContent value="execution" className="mt-0">{renderExecutionTab()}</TabsContent>
         </div>
-      </div>
+      </Tabs>
 
       {/* Footer */}
       <div className="border-t border-border p-4 space-y-2">
@@ -927,10 +720,10 @@ export function NodeConfigPanel({ node, onClose, onSave, onDelete }: NodeConfigP
           <Save className="mr-2 h-4 w-4" />
           Lưu thay đổi
         </Button>
-        {onDelete && node.type !== 'start' && node.type !== 'end' && (
+        {onDelete && (
           <Button variant="outline" className="w-full text-danger hover:text-danger" onClick={onDelete}>
             <Trash2 className="mr-2 h-4 w-4" />
-            Xóa bước này
+            Xóa Node
           </Button>
         )}
       </div>

@@ -104,6 +104,80 @@ export interface Task {
   completedAt?: Date;
 }
 
+// ===== JOURNEY NODE - 3-PART ARCHITECTURE =====
+
+export type JourneyNodeType = 'interact' | 'authen' | 'author';
+
+// A. INFO NODE - Metadata & Routing
+export interface NodeInfo {
+  label: string;
+  description?: string;
+  // Routing: define next nodes based on execution result
+  routing?: {
+    successNodeId?: string;
+    failureNodeId?: string;
+    branches?: Array<{
+      condition: string;
+      targetNodeId: string;
+      label: string;
+    }>;
+  };
+}
+
+// B. RULE - Conditions & Triggers
+export interface NodeRule {
+  // Audience: segment or property filter
+  audience?: {
+    type: 'segment' | 'property' | 'all';
+    segmentId?: string;
+    propertyFilter?: string;
+    description?: string;
+  };
+  // Timing: when to trigger
+  timing?: {
+    type: 'immediate' | 'delay' | 'scheduled' | 'event';
+    delayValue?: number;
+    delayUnit?: 'minutes' | 'hours' | 'days' | 'weeks';
+    scheduledDate?: string;
+    scheduledTime?: string;
+  };
+  // Event Trigger: customer action or system event
+  eventTrigger?: {
+    type: 'customer_action' | 'system_event' | 'none';
+    event?: string; // e.g. 'click_link', 'open_app', 'deposit', 'status_change'
+    description?: string;
+  };
+}
+
+// C. EXECUTION - Actions
+export interface NodeExecution {
+  // Task execution: single actions
+  tasks?: Array<{
+    id: string;
+    type: 'email' | 'sms' | 'notification' | 'zalo' | 'call' | 'create_task';
+    config?: Record<string, any>;
+    label?: string;
+  }>;
+  // Call Flow: sub-flow / flow-in-flow
+  callFlow?: {
+    enabled: boolean;
+    flowId?: string;
+    flowName?: string;
+  };
+  // API/Webhook: 3rd party integration
+  apiWebhook?: {
+    enabled: boolean;
+    url?: string;
+    method?: 'GET' | 'POST' | 'PUT';
+    headers?: Record<string, string>;
+    description?: string;
+  };
+  // Type-specific configs
+  kycConfig?: KycConfig;
+  authorizationConfig?: AuthorizationConfig;
+  esignConfig?: EsignConfig;
+}
+
 export interface KycConfig {
   method: 'cccd' | 'passport' | 'driver_license';
   steps: ('id_front' | 'id_back' | 'face_matching' | 'ocr_verify' | 'db_check')[];
@@ -134,20 +208,14 @@ export interface EsignConfig {
   fallbackMethod?: 'otp' | 'manual';
 }
 
+// The unified JourneyNode with 3-part structure
 export interface JourneyNode {
   id: string;
-  type: 'start' | 'touchpoint' | 'decision' | 'wait' | 'end' | 'kyc' | 'authorization' | 'esign';
+  type: JourneyNodeType;
   position: { x: number; y: number };
-  data: {
-    label: string;
-    description?: string;
-    condition?: string;
-    waitDays?: number;
-    touchpointType?: TouchPoint['type'];
-    kycConfig?: KycConfig;
-    authorizationConfig?: AuthorizationConfig;
-    esignConfig?: EsignConfig;
-  };
+  info: NodeInfo;
+  rule: NodeRule;
+  execution: NodeExecution;
 }
 
 export interface JourneyEdge {
