@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CustomerProgram, Journey, CustomerGroup } from '@/types';
+import { CustomerProgram, Journey, CustomerGroup, JourneyNode } from '@/types';
 import { LeftRail } from '@/components/layout/LeftRail';
 import { MainStage } from '@/components/layout/MainStage';
 import { JourneyBuilder } from './JourneyBuilder';
@@ -19,6 +19,14 @@ interface CompassModuleProps {
   onImportCustomers?: (groupId: string, customers: any[]) => void;
 }
 
+// Helper to create nodes with new 3-part structure
+const n = (id: string, type: JourneyNode['type'], label: string, opts?: { description?: string; tasks?: JourneyNode['execution']['tasks']; kycConfig?: JourneyNode['execution']['kycConfig']; authorizationConfig?: JourneyNode['execution']['authorizationConfig']; esignConfig?: JourneyNode['execution']['esignConfig']; timing?: JourneyNode['rule']['timing'] }): JourneyNode => ({
+  id, type, position: { x: 0, y: 0 },
+  info: { label, description: opts?.description },
+  rule: { timing: opts?.timing },
+  execution: { tasks: opts?.tasks, kycConfig: opts?.kycConfig, authorizationConfig: opts?.authorizationConfig, esignConfig: opts?.esignConfig },
+});
+
 const mockJourneys: Journey[] = [
   {
     id: 'j-1',
@@ -27,22 +35,13 @@ const mockJourneys: Journey[] = [
     status: 'active',
     createdAt: new Date('2024-12-01'),
     nodes: [
-      { id: 'n-1', type: 'start', position: { x: 100, y: 200 }, data: { label: 'Bắt đầu' } },
-      { id: 'n-2', type: 'touchpoint', position: { x: 300, y: 200 }, data: { label: 'Email chào mừng', touchpointType: 'email' } },
-      { id: 'n-3', type: 'wait', position: { x: 500, y: 200 }, data: { label: 'Chờ 3 ngày', waitDays: 3 } },
-      { id: 'n-4', type: 'decision', position: { x: 700, y: 200 }, data: { label: 'Đã dùng dịch vụ?', condition: 'has_transaction' } },
-      { id: 'n-5', type: 'touchpoint', position: { x: 900, y: 100 }, data: { label: 'SMS cảm ơn', touchpointType: 'sms' } },
-      { id: 'n-6', type: 'touchpoint', position: { x: 900, y: 300 }, data: { label: 'Gọi điện tư vấn', touchpointType: 'call' } },
-      { id: 'n-7', type: 'end', position: { x: 1100, y: 200 }, data: { label: 'Kết thúc' } },
+      n('n-1', 'interact', 'Bắt đầu - Email chào mừng', { tasks: [{ id: 't1', type: 'email', label: 'Email chào mừng' }] }),
+      n('n-2', 'interact', 'Chờ 3 ngày + SMS', { timing: { type: 'delay', delayValue: 3, delayUnit: 'days' }, tasks: [{ id: 't2', type: 'sms', label: 'SMS cảm ơn' }] }),
+      n('n-3', 'interact', 'Gọi điện tư vấn', { tasks: [{ id: 't3', type: 'call', label: 'Gọi điện tư vấn' }] }),
     ],
     edges: [
       { id: 'e-1', source: 'n-1', target: 'n-2' },
       { id: 'e-2', source: 'n-2', target: 'n-3' },
-      { id: 'e-3', source: 'n-3', target: 'n-4' },
-      { id: 'e-4', source: 'n-4', target: 'n-5', label: 'Có' },
-      { id: 'e-5', source: 'n-4', target: 'n-6', label: 'Không' },
-      { id: 'e-6', source: 'n-5', target: 'n-7' },
-      { id: 'e-7', source: 'n-6', target: 'n-7' },
     ],
   },
   {
@@ -61,16 +60,10 @@ const mockJourneys: Journey[] = [
     status: 'active',
     createdAt: new Date('2025-03-01'),
     nodes: [
-      { id: 'n-1', type: 'start', position: { x: 0, y: 0 }, data: { label: 'KH đăng ký mới', description: 'Khách hàng mới đăng ký thông tin cơ bản (Tên, SĐT)' } },
-      { id: 'n-2', type: 'touchpoint', position: { x: 0, y: 0 }, data: { label: 'Email chào mừng + link App', touchpointType: 'email' } },
-      { id: 'n-3', type: 'kyc', position: { x: 0, y: 0 }, data: { label: 'Xác thực KYC (CCCD + Face)', description: 'Chụp CCCD, quét khuôn mặt, OCR, đối chiếu CSDL', kycConfig: { method: 'cccd', steps: ['id_front', 'id_back', 'face_matching', 'ocr_verify', 'db_check'], maxRetries: 3, manualReviewOnFail: true, failAction: 'create_task' } } },
-      { id: 'n-4', type: 'decision', position: { x: 0, y: 0 }, data: { label: 'KYC thành công?', condition: 'kyc_result == success' } },
-      { id: 'n-5', type: 'authorization', position: { x: 0, y: 0 }, data: { label: 'Phân quyền & Định mức Margin', description: 'Kiểm tra CIC, cấp hạn mức phù hợp', authorizationConfig: { checkType: 'credit_score', rules: [], defaultTier: 'standard' } } },
-      { id: 'n-6', type: 'touchpoint', position: { x: 0, y: 0 }, data: { label: 'Notification: Chúc mừng cấp hạn mức', touchpointType: 'notification' } },
-      { id: 'n-7', type: 'esign', position: { x: 0, y: 0 }, data: { label: 'Ký hợp đồng điện tử', description: 'Ký HĐ bằng OTP/Biometrics', esignConfig: { method: 'otp', documentType: 'contract', requireWitness: false, expiryHours: 24 } } },
-      { id: 'n-8', type: 'wait', position: { x: 0, y: 0 }, data: { label: 'Chờ 2 giờ', waitDays: 0, description: 'Chờ 2 giờ sau khi ký thành công' } },
-      { id: 'n-9', type: 'touchpoint', position: { x: 0, y: 0 }, data: { label: 'Email hướng dẫn sử dụng App', touchpointType: 'email' } },
-      { id: 'n-10', type: 'end', position: { x: 0, y: 0 }, data: { label: 'Hoàn thành - Sẵn sàng giao dịch' } },
+      n('n-1', 'interact', 'KH đăng ký mới', { description: 'Khách hàng mới đăng ký (Tên, SĐT)', tasks: [{ id: 't1', type: 'email', label: 'Email chào mừng + link App' }] }),
+      n('n-2', 'authen', 'Xác thực KYC (CCCD + Face)', { description: 'Chụp CCCD, quét khuôn mặt, OCR, đối chiếu CSDL', kycConfig: { method: 'cccd', steps: ['id_front', 'id_back', 'face_matching', 'ocr_verify', 'db_check'], maxRetries: 3, manualReviewOnFail: true, failAction: 'create_task' } }),
+      n('n-3', 'author', 'Phân quyền & Định mức Margin', { description: 'Kiểm tra CIC, cấp hạn mức phù hợp', authorizationConfig: { checkType: 'credit_score', rules: [], defaultTier: 'standard' }, esignConfig: { method: 'otp', documentType: 'contract', requireWitness: false, expiryHours: 24 } }),
+      n('n-4', 'interact', 'Thông báo & Hướng dẫn', { timing: { type: 'delay', delayValue: 2, delayUnit: 'hours' }, tasks: [{ id: 't4', type: 'notification', label: 'Chúc mừng cấp hạn mức' }, { id: 't5', type: 'email', label: 'Hướng dẫn sử dụng App' }] }),
     ],
     edges: [],
   },
@@ -94,7 +87,6 @@ export function CompassModule({
 
   const selectedJourney = journeys.find((j) => j.id === selectedJourneyId);
   
-  // Filter journeys based on selected program or group
   const filteredJourneys = selectedGroupId
     ? journeys.filter((j) => j.customerProgramId === selectedGroupId)
     : selectedProgramId
@@ -115,24 +107,25 @@ export function CompassModule({
     setViewMode('list');
   };
 
-  const handleCreateJourney = (journeyData: { name: string; targetType: 'program' | 'group'; targetId: string; nodes?: any[] }) => {
+  const handleCreateJourney = (journeyData: { name: string; targetType: 'program' | 'group'; targetId: string; nodes?: JourneyNode[] }) => {
     const newJourney: Journey = {
       id: `j-${Date.now()}`,
       name: journeyData.name,
       customerProgramId: journeyData.targetId,
       status: 'draft',
       createdAt: new Date(),
-      nodes: journeyData.nodes || [
-        { id: 'n-start', type: 'start', position: { x: 100, y: 200 }, data: { label: 'Bắt đầu' } },
-        { id: 'n-end', type: 'end', position: { x: 300, y: 200 }, data: { label: 'Kết thúc' } },
-      ],
-      edges: [
-        { id: 'e-1', source: 'n-start', target: 'n-end' },
-      ],
+      nodes: journeyData.nodes || [],
+      edges: [],
     };
     setJourneys((prev) => [...prev, newJourney]);
     setSelectedJourneyId(newJourney.id);
     setViewMode('builder');
+  };
+
+  const nodeTypeColors: Record<string, string> = {
+    interact: 'bg-primary',
+    authen: 'bg-cyan-500',
+    author: 'bg-amber-500',
   };
 
   const renderContent = () => {
@@ -140,10 +133,7 @@ export function CompassModule({
       return (
         <JourneyBuilder
           journey={selectedJourney}
-          onBack={() => {
-            setSelectedJourneyId(null);
-            setViewMode('list');
-          }}
+          onBack={() => { setSelectedJourneyId(null); setViewMode('list'); }}
         />
       );
     }
@@ -161,10 +151,8 @@ export function CompassModule({
       );
     }
 
-    // List view
     return (
       <div className="flex h-full flex-col">
-        {/* Header */}
         <div className="flex h-14 items-center justify-between border-b border-border px-6">
           <div className="flex items-center gap-3">
             <Compass className="h-5 w-5 text-primary" />
@@ -176,7 +164,6 @@ export function CompassModule({
           </Button>
         </div>
 
-        {/* Journey list */}
         <div className="flex-1 overflow-y-auto scrollbar-thin p-6">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {filteredJourneys.map((journey, index) => {
@@ -185,17 +172,9 @@ export function CompassModule({
               const targetName = program?.name || group?.name;
               
               return (
-                <motion.div
-                  key={journey.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                >
+                <motion.div key={journey.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }}>
                   <button
-                    onClick={() => {
-                      setSelectedJourneyId(journey.id);
-                      setViewMode('builder');
-                    }}
+                    onClick={() => { setSelectedJourneyId(journey.id); setViewMode('builder'); }}
                     className="group w-full rounded-lg border border-border bg-card p-5 text-left transition-all hover:border-primary/50 hover:shadow-md"
                   >
                     <div className="flex items-start justify-between">
@@ -209,48 +188,27 @@ export function CompassModule({
                           <Compass className="h-5 w-5" />
                         </div>
                         <div>
-                          <h3 className="font-medium group-hover:text-primary transition-colors">
-                            {journey.name}
-                          </h3>
-                          {targetName && (
-                            <p className="text-xs text-muted-foreground">{targetName}</p>
-                          )}
+                          <h3 className="font-medium group-hover:text-primary transition-colors">{journey.name}</h3>
+                          {targetName && <p className="text-xs text-muted-foreground">{targetName}</p>}
                         </div>
                       </div>
                       <MoreHorizontal className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
 
                     <div className="mt-4 flex items-center justify-between">
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          journey.status === 'active' && 'bg-success/10 text-success border-success/20',
-                          journey.status === 'paused' && 'bg-warning/10 text-warning border-warning/20',
-                          journey.status === 'draft' && 'bg-muted text-muted-foreground'
-                        )}
-                      >
-                        {journey.status === 'active' ? 'Đang chạy' :
-                         journey.status === 'paused' ? 'Tạm dừng' : 'Nháp'}
+                      <Badge variant="outline" className={cn(
+                        journey.status === 'active' && 'bg-success/10 text-success border-success/20',
+                        journey.status === 'paused' && 'bg-warning/10 text-warning border-warning/20',
+                        journey.status === 'draft' && 'bg-muted text-muted-foreground'
+                      )}>
+                        {journey.status === 'active' ? 'Đang chạy' : journey.status === 'paused' ? 'Tạm dừng' : 'Nháp'}
                       </Badge>
-                      <span className="text-xs text-muted-foreground">
-                        {journey.nodes.length} bước
-                      </span>
+                      <span className="text-xs text-muted-foreground">{journey.nodes.length} bước</span>
                     </div>
 
-                    {/* Mini preview */}
                     <div className="mt-4 flex items-center gap-2">
                       {journey.nodes.slice(0, 5).map((node) => (
-                        <div
-                          key={node.id}
-                          className={cn(
-                            'h-2 w-2 rounded-full',
-                            node.type === 'start' && 'bg-success',
-                            node.type === 'touchpoint' && 'bg-primary',
-                            node.type === 'wait' && 'bg-warning',
-                            node.type === 'decision' && 'bg-accent',
-                            node.type === 'end' && 'bg-muted-foreground'
-                          )}
-                        />
+                        <div key={node.id} className={cn('h-2 w-2 rounded-full', nodeTypeColors[node.type] || 'bg-muted-foreground')} />
                       ))}
                       {journey.nodes.length > 5 && (
                         <span className="text-xs text-muted-foreground">+{journey.nodes.length - 5}</span>
@@ -261,7 +219,6 @@ export function CompassModule({
               );
             })}
 
-            {/* Empty state / Add new */}
             <button
               onClick={() => setViewMode('creator')}
               className="flex h-48 items-center justify-center rounded-lg border-2 border-dashed border-border bg-muted/30 text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary"
